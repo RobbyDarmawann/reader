@@ -73,6 +73,12 @@ public partial class BrowseView : UserControl
         ResumeReadingButton.Click += ResumeReadingButton_Click;
         ReaderTopButton.Click += ReaderTopButton_Click;
         ReaderBottomButton.Click += ReaderBottomButton_Click;
+        PreviousChapterButton.Click += PreviousChapterButton_Click;
+        NextChapterButton.Click += NextChapterButton_Click;
+        DownloadChapterButton.Click += DownloadChapterButton_Click;
+        ReaderModeComboBox.ItemsSource = new[] { "Webtoon", "Horizontal" };
+        ReaderModeComboBox.SelectedIndex = 0;
+        ReaderModeComboBox.SelectionChanged += ReaderModeComboBox_SelectionChanged;
         ReaderScrollViewer.ScrollChanged += ReaderScrollViewer_ScrollChanged;
         MainScrollViewer.ScrollChanged += MainScrollViewer_ScrollChanged;
     }
@@ -94,6 +100,7 @@ public partial class BrowseView : UserControl
         {
             try
             {
+                SelectSourceForUrl(pendingResume.MangaUrl);
                 await OpenResumeAsync(
                     pendingResume);
             }
@@ -105,12 +112,34 @@ public partial class BrowseView : UserControl
         }
         else if (pendingDetail is not null)
         {
+            SelectSourceForUrl(pendingDetail.MangaUrl);
             await OpenMangaDetailAsync(new Manga(
-                "bacakomik",
+                _activeSource.Id,
                 pendingDetail.MangaUrl,
                 pendingDetail.MangaTitle,
                 pendingDetail.CoverUrl));
         }
+    }
+
+    private void SelectSourceForUrl(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return;
+
+        if (uri.Host.Contains("bacakomik", StringComparison.OrdinalIgnoreCase))
+        {
+            _activeSource = _bacaSource;
+            return;
+        }
+
+        _activeSource = new NativeExtensionSource(
+            new ComicSourceDescriptor(
+                uri.Host,
+                uri.Host,
+                string.Empty,
+                $"{uri.Scheme}://{uri.Host}",
+                string.Empty,
+                string.Empty));
     }
 
 
@@ -581,7 +610,7 @@ public partial class BrowseView : UserControl
 
             var request = new SourceCatalogRequest(
                 Section: _currentSection,
-                Genre: GetComboValue(GenreComboBox),
+                Genre: GetFilterValue(GenreComboBox),
                 Type: GetComboValue(TypeComboBox),
                 Status: GetComboValue(StatusComboBox),
                 Format: GetComboValue(FormatComboBox),
@@ -663,6 +692,20 @@ public partial class BrowseView : UserControl
         ComboBox combo)
     {
         return combo.SelectedItem?.ToString();
+    }
+
+    private static string? GetFilterValue(Control control)
+    {
+        if (control is ListBox list)
+        {
+            var selected = list.SelectedItems?
+                .OfType<string>()
+                .Where(x => !string.Equals(x, "All", StringComparison.OrdinalIgnoreCase));
+
+            return selected is null ? null : string.Join(",", selected);
+        }
+
+        return (control as ComboBox)?.SelectedItem?.ToString();
     }
 
 
@@ -763,7 +806,7 @@ public partial class BrowseView : UserControl
 
         var manga =
             new Manga(
-                "bacakomik",
+                _activeSource.Id,
                 progress.MangaUrl,
                 progress.MangaTitle,
                 progress.CoverUrl);
@@ -772,7 +815,7 @@ public partial class BrowseView : UserControl
 
         var chapter =
             new Chapter(
-                "bacakomik",
+                _activeSource.Id,
                 progress.ChapterUrl,
                 progress.ChapterName);
 
@@ -1046,6 +1089,8 @@ public partial class BrowseView : UserControl
 
         DetailDescription.Text =
             "Memuat synopsis...";
+        DownloadChapterButton.IsEnabled = false;
+        DownloadChapterButton.Content = "Download chapter ini";
 
         DetailCover.Source = null;
 
@@ -1105,6 +1150,8 @@ public partial class BrowseView : UserControl
                     : $"{chapters.Count} chapter tersedia.";
 
             await UpdateResumeReadingButtonAsync();
+            DownloadChapterButton.IsEnabled = chapters.Count > 0;
+            DownloadChapterButton.Content = "Download chapter terbaru";
         }
         catch (Exception ex)
         {
@@ -1216,6 +1263,8 @@ public partial class BrowseView : UserControl
         Chapter chapter)
     {
         _currentChapter = chapter;
+        DownloadChapterButton.IsEnabled = true;
+        DownloadChapterButton.Content = "Download chapter ini";
 
         ReaderPage.IsVisible = true;
         ExtensionPage.IsVisible = false;
@@ -1229,6 +1278,9 @@ public partial class BrowseView : UserControl
 
         ReaderChapter.Text =
             chapter.Name;
+
+        ReaderNavigationStatus.Text =
+            $"Chapter {_readerChapters.ToList().FindIndex(x => x.Url == chapter.Url) + 1}/{_readerChapters.Count}";
 
         // ====================================================
         // BACA PROGRESS LOCAL TERLEBIH DAHULU
@@ -1477,6 +1529,73 @@ public partial class BrowseView : UserControl
         finally
         {
             _isRestoringReadingProgress = false;
+        }
+    }
+
+    private async void PreviousChapterButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_currentChapter is null)
+            return;
+
+        var index = _readerChapters.ToList().FindIndex(x => x.Url == _currentChapter.Url);
+        if (index > 0)
+            await OpenChapterAsync(_readerChapters[index - 1]);
+    }
+
+    private async void NextChapterButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_currentChapter is null)
+            return;
+
+        var index = _readerChapters.ToList().FindIndex(x => x.Url == _currentChapter.Url);
+        if (index >= 0 && index < _readerChapters.Count - 1)
+            await OpenChapterAsync(_readerChapters[index + 1]);
+    }
+
+    private void ReaderModeComboBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        var horizontal = string.Equals(
+            ReaderModeComboBox.SelectedItem?.ToString(),
+            "Horizontal",
+            StringComparison.OrdinalIgnoreCase);
+
+        ReaderPageContainer.Orientation = horizontal
+            ? Avalonia.Layout.Orientation.Horizontal
+            : Avalonia.Layout.Orientation.Vertical;
+        ReaderScrollViewer.HorizontalScrollBarVisibility = horizontal
+            ? Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
+            : Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden;
+        ReaderScrollViewer.VerticalScrollBarVisibility = horizontal
+            ? Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden
+            : Avalonia.Controls.Primitives.ScrollBarVisibility.Auto;
+    }
+
+    private async void DownloadChapterButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_currentManga is null || _readerChapters.Count == 0)
+            return;
+
+        var chapter = _currentChapter ?? _readerChapters.FirstOrDefault();
+        if (chapter is null)
+            return;
+
+        try
+        {
+            DownloadChapterButton.IsEnabled = false;
+            DownloadChapterButton.Content = "Mengambil halaman...";
+            var pages = await _activeSource.GetPagesAsync(chapter);
+            var progress = new Progress<int>(count =>
+                DownloadChapterButton.Content = $"Download {count}/{pages.Count}");
+            var folder = await _downloadService.DownloadAsync(_currentManga, chapter, pages, progress);
+            DownloadChapterButton.Content = $"Tersimpan: {Path.GetFileName(folder)}";
+        }
+        catch (Exception ex)
+        {
+            DownloadChapterButton.Content = $"Download gagal: {ex.Message}";
+        }
+        finally
+        {
+            DownloadChapterButton.IsEnabled = true;
         }
     }
 

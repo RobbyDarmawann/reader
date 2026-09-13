@@ -32,7 +32,7 @@ public sealed class ChapterDownloadService
             {
                 if (pages[index].Headers is not null)
                 {
-                    foreach (var header in pages[index].Headers)
+                    foreach (var header in pages[index].Headers!)
                         client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
                 }
 

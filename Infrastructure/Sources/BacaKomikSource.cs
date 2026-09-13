@@ -198,6 +198,16 @@ public sealed class BacaKomikSource : IComicSource
             "artis",
             "ilustrator");
 
+        var status = FindInfoValue(document, "status", "status komik");
+        var type = FindInfoValue(document, "type", "jenis", "tipe");
+        var genres = document.DocumentNode
+            .SelectNodes("//*[contains(@class,'genre')]//a | //a[contains(@href,'genre')]")?
+            .Select(x => CleanText(x.InnerText))
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(20)
+            .ToArray();
+
         var description = FindSynopsis(document);
 
         return new Manga(
@@ -207,7 +217,10 @@ public sealed class BacaKomikSource : IComicSource
             cover,
             author,
             artist,
-            description);
+            description,
+            status,
+            type,
+            genres);
     }
 
     private static string? FindSynopsis(HtmlDocument document)

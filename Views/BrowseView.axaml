@@ -562,12 +562,13 @@
                 </ScrollViewer>
 
                 <Border Grid.Row="2" Background="#151515" Padding="10">
-                    <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="8">
-                        <Button x:Name="ReaderBottomButton" Content="Top" />
+                    <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto" ColumnSpacing="8">
+                        <Button x:Name="ReaderTopButton" Content="Top" />
                         <Button x:Name="PreviousChapterButton" Grid.Column="1" Content="Previous" />
                         <ComboBox x:Name="ReaderModeComboBox" Grid.Column="2" Width="130" />
                         <Button x:Name="NextChapterButton" Grid.Column="3" Content="Next" />
-                        <TextBlock x:Name="ReaderNavigationStatus" Grid.Column="4"
+                        <Button x:Name="ReaderBottomButton" Grid.Column="4" Content="Bottom" />
+                        <TextBlock x:Name="ReaderNavigationStatus" Grid.Column="5"
                                    VerticalAlignment="Center" />
                     </Grid>
                 </Border>
