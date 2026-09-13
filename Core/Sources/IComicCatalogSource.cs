@@ -13,7 +13,8 @@ public sealed record SourceCatalogRequest(
     string? Type = null,
     string? Status = null,
     string? Format = null,
-    string? Sort = null);
+    string? Sort = null,
+    int Page = 1);
 
 public interface IComicCatalogSource
 {

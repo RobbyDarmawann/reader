@@ -108,6 +108,8 @@ public sealed class BacaKomikCatalogSource : IComicCatalogSource
         CancellationToken cancellationToken = default)
     {
         var url = BuildUrl(request);
+        if (request.Page > 1)
+            url = $"{url.TrimEnd('/')}/page/{request.Page}/";
 
         using var response = await _httpClient.GetAsync(
             url,

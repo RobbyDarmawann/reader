@@ -40,6 +40,9 @@ public partial class BrowseView : UserControl
     private CancellationTokenSource? _progressSaveTimer;
     private bool _isRestoringReadingProgress;
     private bool _returnToHomeAfterReader;
+    private int _catalogPage = 1;
+    private bool _catalogLoading;
+    private bool _catalogHasMore = true;
     public BrowseView()
     {
         InitializeComponent();
@@ -69,6 +72,7 @@ public partial class BrowseView : UserControl
         ReaderTopButton.Click += ReaderTopButton_Click;
         ReaderBottomButton.Click += ReaderBottomButton_Click;
         ReaderScrollViewer.ScrollChanged += ReaderScrollViewer_ScrollChanged;
+        MainScrollViewer.ScrollChanged += MainScrollViewer_ScrollChanged;
     }
 
 
@@ -520,12 +524,38 @@ public partial class BrowseView : UserControl
         await LoadCatalogAsync();
     }
 
-
-    private async Task LoadCatalogAsync()
+    private async void MainScrollViewer_ScrollChanged(
+        object? sender,
+        ScrollChangedEventArgs e)
     {
+        if (!_catalogLoading &&
+            _catalogHasMore &&
+            SourcePage.IsVisible &&
+            MainScrollViewer.Offset.Y + MainScrollViewer.Viewport.Height >=
+            MainScrollViewer.Extent.Height - 450)
+        {
+            await LoadCatalogAsync(append: true);
+        }
+    }
+
+
+    private async Task LoadCatalogAsync(bool append = false)
+    {
+        if (_catalogLoading)
+            return;
+
+        if (!append)
+        {
+            _catalogPage = 1;
+            _catalogHasMore = true;
+        }
+
+        _catalogLoading = true;
         try
         {
-            CatalogStatus.Text = "Memuat katalog...";
+            CatalogStatus.Text = append
+                ? "Memuat komik berikutnya..."
+                : "Memuat katalog...";
 
             var request = new SourceCatalogRequest(
                 Section: _currentSection,
@@ -533,20 +563,33 @@ public partial class BrowseView : UserControl
                 Type: GetComboValue(TypeComboBox),
                 Status: GetComboValue(StatusComboBox),
                 Format: GetComboValue(FormatComboBox),
-                Sort: GetComboValue(SortComboBox));
+                Sort: GetComboValue(SortComboBox),
+                Page: _catalogPage);
 
             var results =
                 await _bacaCatalog.GetCatalogAsync(request);
 
-            RenderMangaGrid(results);
+            if (append)
+                AppendMangaGrid(results);
+            else
+                RenderMangaGrid(results);
+
+            _catalogHasMore = results.Count > 0;
+            _catalogPage++;
 
             CatalogStatus.Text =
-                $"{results.Count} manga ditemukan.";
+                append
+                    ? $"{MangaGrid.Items.Count} manga tersedia."
+                    : $"{results.Count} manga ditemukan. Scroll untuk memuat lebih banyak.";
         }
         catch (Exception ex)
         {
             CatalogStatus.Text =
                 $"Gagal memuat katalog: {ex.Message}";
+        }
+        finally
+        {
+            _catalogLoading = false;
         }
     }
 
@@ -573,6 +616,7 @@ public partial class BrowseView : UserControl
                 await _activeSource.SearchAsync(query);
 
             RenderMangaGrid(results);
+            _catalogHasMore = false;
 
             CatalogStatus.Text =
                 $"{results.Count} hasil ditemukan.";
@@ -604,6 +648,21 @@ public partial class BrowseView : UserControl
         }
     }
 
+    private void AppendMangaGrid(IReadOnlyList<Manga> mangas)
+    {
+        var existingUrls = MangaGrid.Items
+            .OfType<Control>()
+            .Select(control => control.Tag as string)
+            .Where(url => !string.IsNullOrWhiteSpace(url))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var manga in mangas)
+        {
+            if (existingUrls.Add(manga.Url))
+                MangaGrid.Items.Add(CreateMangaCard(manga));
+        }
+    }
+
 
     private Control CreateMangaCard(
         Manga manga)
@@ -618,6 +677,7 @@ public partial class BrowseView : UserControl
             CornerRadius = new CornerRadius(10),
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
         };
+        border.Tag = manga.Url;
 
         var stack = new StackPanel();
 

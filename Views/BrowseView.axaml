@@ -324,9 +324,11 @@
 
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <UniformGrid
-                                    Columns="4"
-                                    HorizontalAlignment="Stretch" />
+                                <WrapPanel
+                                    Orientation="Horizontal"
+                                    HorizontalAlignment="Left"
+                                    ItemWidth="180"
+                                    ItemHeight="330" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
 
