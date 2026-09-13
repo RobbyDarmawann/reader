@@ -27,8 +27,20 @@ public sealed class NativeExtensionSource : IComicSource
         string query,
         CancellationToken cancellationToken = default)
     {
-        var url = BuildUrl($"?s={Uri.EscapeDataString(query)}");
-        return ParseMangaCards(await GetHtmlAsync(url, cancellationToken));
+        var url = BuildSearchUrl(query);
+        var results = ParseMangaCards(
+            await GetHtmlAsync(url, cancellationToken));
+
+        if (results.Count == 0 &&
+            new Uri(BaseUrl).Host.Contains("shinigami", StringComparison.OrdinalIgnoreCase))
+        {
+            results = ParseMangaCards(
+                await GetHtmlAsync(
+                    BuildUrl($"?s={Uri.EscapeDataString(query)}"),
+                    cancellationToken));
+        }
+
+        return results;
     }
 
     public async Task<Manga?> GetDetailsAsync(
@@ -43,12 +55,24 @@ public sealed class NativeExtensionSource : IComicSource
             "//*[contains(@class,'summary')]",
             "//*[contains(@class,'description')]",
             "//*[contains(@class,'synopsis')]");
+        var status = FindLabeledValue(document, "status", "status komik");
+        var type = FindLabeledValue(document, "type", "jenis", "tipe");
+        var genres = document.DocumentNode
+            .SelectNodes("//*[contains(@class,'genre')]//a | //a[contains(@href,'genre')]")?
+            .Select(x => Clean(x.InnerText))
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(20)
+            .ToArray();
 
         return manga with
         {
             Title = Clean(title),
             CoverUrl = cover ?? manga.CoverUrl,
-            Description = Clean(description ?? manga.Description ?? string.Empty)
+            Description = Clean(description ?? manga.Description ?? string.Empty),
+            Status = status,
+            Type = type,
+            Genres = genres
         };
     }
 
@@ -135,6 +159,8 @@ public sealed class NativeExtensionSource : IComicSource
 
             if (string.IsNullOrWhiteSpace(title) ||
                 !Uri.TryCreate(url, UriKind.Absolute, out _) ||
+                !IsSameHost(url) ||
+                !LooksLikeMangaUrl(url) ||
                 !seen.Add(url) ||
                 title.Length < 2)
                 continue;
@@ -149,6 +175,16 @@ public sealed class NativeExtensionSource : IComicSource
     {
         var root = BaseUrl.TrimEnd('/');
         return suffix.StartsWith('/') ? root + suffix : root + "/" + suffix;
+    }
+
+    private string BuildSearchUrl(string query)
+    {
+        var encoded = Uri.EscapeDataString(query);
+        var host = new Uri(BaseUrl).Host;
+
+        return host.Contains("shinigami", StringComparison.OrdinalIgnoreCase)
+            ? BuildUrl($"/search/{encoded}")
+            : BuildUrl($"?s={encoded}");
     }
 
     private string NormalizeUrl(string value)
@@ -180,6 +216,22 @@ public sealed class NativeExtensionSource : IComicSource
         selectors.Select(selector => document.DocumentNode.SelectSingleNode(selector)?.InnerText)
             .FirstOrDefault(text => !string.IsNullOrWhiteSpace(text));
 
+    private static string? FindLabeledValue(HtmlDocument document, params string[] labels)
+    {
+        foreach (var node in document.DocumentNode.SelectNodes("//*[self::li or self::p or self::div or self::span]") ?? Enumerable.Empty<HtmlNode>())
+        {
+            var text = Clean(node.InnerText);
+            if (labels.Any(label => text.StartsWith(label, StringComparison.OrdinalIgnoreCase)))
+            {
+                var value = text[(text.IndexOf(':') + 1)..].Trim();
+                if (!string.IsNullOrWhiteSpace(value) && value != text)
+                    return value;
+            }
+        }
+
+        return null;
+    }
+
     private static bool IsChapterName(string name) =>
         name.Contains("chapter", StringComparison.OrdinalIgnoreCase) ||
         name.Contains("ch.", StringComparison.OrdinalIgnoreCase) ||
@@ -190,6 +242,17 @@ public sealed class NativeExtensionSource : IComicSource
         url.Contains(".jpeg", StringComparison.OrdinalIgnoreCase) ||
         url.Contains(".png", StringComparison.OrdinalIgnoreCase) ||
         url.Contains(".webp", StringComparison.OrdinalIgnoreCase);
+
+    private bool IsSameHost(string url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
+        Uri.TryCreate(BaseUrl, UriKind.Absolute, out var baseUri) &&
+        string.Equals(uri.Host, baseUri.Host, StringComparison.OrdinalIgnoreCase);
+
+    private static bool LooksLikeMangaUrl(string url) =>
+        url.Contains("/manga/", StringComparison.OrdinalIgnoreCase) ||
+        url.Contains("/komik/", StringComparison.OrdinalIgnoreCase) ||
+        url.Contains("/manhwa/", StringComparison.OrdinalIgnoreCase) ||
+        url.Contains("/series/", StringComparison.OrdinalIgnoreCase);
 
     private static int ExtractNumber(string text)
     {

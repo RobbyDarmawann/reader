@@ -267,10 +267,11 @@
                                 RowSpacing="10"
                                 Margin="0,16,0,0">
 
-                                <ComboBox
+                                <ListBox
                                     x:Name="GenreComboBox"
-                                    Height="40"
-                                    PlaceholderText="Genre"/>
+                                    Height="72"
+                                    SelectionMode="Multiple"
+                                    ScrollViewer.VerticalScrollBarVisibility="Auto" />
 
                                 <ComboBox
                                     x:Name="TypeComboBox"
@@ -453,6 +454,11 @@
             FontSize="14"
             FontWeight="SemiBold"
             IsVisible="False"/>
+                            <Button
+                                x:Name="DownloadChapterButton"
+                                Content="Download chapter ini"
+                                HorizontalAlignment="Right"
+                                Margin="0,0,0,10" />
 <StackPanel
                                 x:Name="ChapterContainer"
                                 Margin="0,18,0,0"/>
@@ -479,7 +485,7 @@
             Panel.ZIndex="1000">
 
             <Grid
-                RowDefinitions="72,*">
+                RowDefinitions="72,*,58">
 
                 <!-- FIXED HEADER -->
 
@@ -555,24 +561,20 @@
 
                 </ScrollViewer>
 
+                <Border Grid.Row="2" Background="#151515" Padding="10">
+                    <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="8">
+                        <Button x:Name="ReaderBottomButton" Content="Top" />
+                        <Button x:Name="PreviousChapterButton" Grid.Column="1" Content="Previous" />
+                        <ComboBox x:Name="ReaderModeComboBox" Grid.Column="2" Width="130" />
+                        <Button x:Name="NextChapterButton" Grid.Column="3" Content="Next" />
+                        <TextBlock x:Name="ReaderNavigationStatus" Grid.Column="4"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+
             </Grid>
 
         </Grid>
-
-        <!-- Compatibility controls used by BrowseView.axaml.cs -->
-        <StackPanel
-            x:Name="ReaderNavigationCompatibility"
-            IsVisible="False">
-
-            <Button
-                x:Name="ReaderTopButton"
-                Content="Top"/>
-
-            <Button
-                x:Name="ReaderBottomButton"
-                Content="Bottom"/>
-
-        </StackPanel>
 
     </Grid>
 

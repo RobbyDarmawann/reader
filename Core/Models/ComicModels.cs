@@ -7,7 +7,10 @@ public sealed record Manga(
     string? CoverUrl = null,
     string? Author = null,
     string? Artist = null,
-    string? Description = null);
+    string? Description = null,
+    string? Status = null,
+    string? Type = null,
+    IReadOnlyList<string>? Genres = null);
 
 public sealed record Chapter(
     string SourceId,

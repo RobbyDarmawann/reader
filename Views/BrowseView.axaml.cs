@@ -31,6 +31,7 @@ public partial class BrowseView : UserControl
         new ReadingProgressService();
     private readonly CoverCacheService _coverCacheService = new();
     private readonly ComicPageCacheService _pageCacheService = new();
+    private readonly ChapterDownloadService _downloadService = new();
 
     private int _readerPageCount;
     private int _readerCurrentPage;
@@ -43,6 +44,7 @@ public partial class BrowseView : UserControl
     private int _catalogPage = 1;
     private bool _catalogLoading;
     private bool _catalogHasMore = true;
+    private int _sourceGeneration;
     public BrowseView()
     {
         InitializeComponent();
@@ -181,8 +183,12 @@ public partial class BrowseView : UserControl
                         StringComparison.OrdinalIgnoreCase))
                     continue;
 
-                _sourceDescriptors[source.Id.ToString()] = new ComicSourceDescriptor(
-                    source.Id.ToString(),
+                var sourceKey = CreateSourceKey(
+                    extension.PackageName,
+                    source.Id);
+
+                _sourceDescriptors[sourceKey] = new ComicSourceDescriptor(
+                    sourceKey,
                     source.Name,
                     source.Language,
                     source.BaseUrl,
@@ -191,7 +197,7 @@ public partial class BrowseView : UserControl
 
                 InstalledContainer.Children.Add(
                     CreateSourceCard(
-                        source.Id.ToString(),
+                        sourceKey,
                         source.Name,
                         $"{source.Language} • {source.BaseUrl}"));
             }
@@ -202,6 +208,9 @@ public partial class BrowseView : UserControl
                 ? "Belum ada source."
                 : $"{InstalledContainer.Children.Count} source tersedia.";
     }
+
+    private static string CreateSourceKey(string packageName, ulong sourceId) =>
+        $"{packageName}:{sourceId}";
 
 
     private Control CreateSourceCard(
@@ -367,11 +376,14 @@ public partial class BrowseView : UserControl
         string title,
         string subtitle)
     {
+        var generation = ++_sourceGeneration;
+        ComicSourceDescriptor? descriptor = null;
+
         _activeSource = sourceId.Equals(
                 "bacakomik",
                 StringComparison.OrdinalIgnoreCase)
             ? _bacaSource
-            : _sourceDescriptors.TryGetValue(sourceId, out var descriptor)
+            : _sourceDescriptors.TryGetValue(sourceId, out descriptor)
                 ? new NativeExtensionSource(descriptor)
                 : new UnsupportedExtensionSource(new ComicSourceDescriptor(
                     sourceId, title, string.Empty, string.Empty, string.Empty, string.Empty));
@@ -388,13 +400,18 @@ public partial class BrowseView : UserControl
             SourceTitle.Text = title;
             SourceDescription.Text =
                 _activeSource is NativeExtensionSource
-                    ? "Native web adapter aktif dari metadata extension."
+                    ? $"{descriptor?.BaseUrl ?? title} • native adapter aktif"
                     : "Source terdeteksi, tetapi metadata URL belum tersedia.";
 
             SearchBox.IsEnabled = _activeSource is NativeExtensionSource;
             SearchButton.IsEnabled = _activeSource is NativeExtensionSource;
             FilterBorder.IsVisible = false;
             MangaGrid.Items.Clear();
+
+            CatalogStatus.Text =
+                _activeSource is NativeExtensionSource
+                    ? "Ketik judul lalu tekan Cari untuk memuat komik dari source ini."
+                    : "Source belum memiliki adapter yang bisa dipakai.";
 
             return;
         }
@@ -541,6 +558,11 @@ public partial class BrowseView : UserControl
 
     private async Task LoadCatalogAsync(bool append = false)
     {
+        if (_activeSource is not BacaKomikSource)
+            return;
+
+        var generation = _sourceGeneration;
+
         if (_catalogLoading)
             return;
 
@@ -568,6 +590,10 @@ public partial class BrowseView : UserControl
 
             var results =
                 await _bacaCatalog.GetCatalogAsync(request);
+
+            if (generation != _sourceGeneration ||
+                _activeSource is not BacaKomikSource)
+                return;
 
             if (append)
                 AppendMangaGrid(results);
@@ -612,8 +638,12 @@ public partial class BrowseView : UserControl
             CatalogStatus.Text =
                 $"Mencari {query}...";
 
+            var source = _activeSource;
             var results =
-                await _activeSource.SearchAsync(query);
+                await source.SearchAsync(query);
+
+            if (!ReferenceEquals(source, _activeSource))
+                return;
 
             RenderMangaGrid(results);
             _catalogHasMore = false;
@@ -1002,7 +1032,7 @@ public partial class BrowseView : UserControl
         MainScrollViewer.ScrollToHome();
 
         DetailTitle.Text = manga.Title;
-        DetailSource.Text = "BacaKomik";
+        DetailSource.Text = _activeSource.Name;
 
         DetailAuthor.Text =
             $"Author: {manga.Author ?? "Tidak diketahui"}";
@@ -1040,6 +1070,11 @@ public partial class BrowseView : UserControl
 
                 DetailArtist.Text =
                     $"Artist: {details.Artist ?? "Tidak diketahui"}";
+
+                DetailStatus.Text = $"Status: {details.Status ?? "Tidak diketahui"}";
+                DetailType.Text = $"Type: {details.Type ?? "Tidak diketahui"}";
+                DetailGenres.Text =
+                    $"Genre: {(details.Genres is { Count: > 0 } ? string.Join(", ", details.Genres) : "Tidak diketahui")}";
 
                 DetailDescription.Text =
                     string.IsNullOrWhiteSpace(details.Description)
