@@ -127,79 +127,47 @@ public sealed class BacaKomikCatalogSource : IComicCatalogSource
     private static string BuildUrl(
         SourceCatalogRequest request)
     {
+        var pagePath = request.Page > 1
+            ? $"page/{request.Page}/"
+            : string.Empty;
+
+        var order = request.Sort switch
+        {
+            "A-Z" => "title",
+            "Z-A" => "titlereverse",
+            "Latest Update" => "update",
+            "Latest Added" => "latest",
+            "Popular" => "popular",
+            _ => string.Equals(request.Section, "latest", StringComparison.OrdinalIgnoreCase)
+                ? "update"
+                : "popular"
+        };
+
+        var query = new List<string> { $"order={order}" };
+
+        AddQuery(query, "status", request.Status, "All");
+        AddQuery(query, "type", request.Type, "All");
+
         if (!string.IsNullOrWhiteSpace(request.Genre) &&
-            !string.Equals(
-                request.Genre,
-                "All",
-                StringComparison.OrdinalIgnoreCase))
+            !string.Equals(request.Genre, "All", StringComparison.OrdinalIgnoreCase))
         {
-            var slug = Slugify(request.Genre);
-            return $"{RootUrl}/genres/{slug}/";
+            query.Add($"genre[]={Uri.EscapeDataString(Slugify(request.Genre))}");
         }
 
-        if (!string.IsNullOrWhiteSpace(request.Type) &&
-            !string.Equals(
-                request.Type,
-                "All",
-                StringComparison.OrdinalIgnoreCase))
+        return $"{RootUrl}/daftar-komik/{pagePath}?{string.Join("&", query)}";
+    }
+
+    private static void AddQuery(
+        List<string> query,
+        string name,
+        string? value,
+        string ignoredValue)
+    {
+        if (!string.IsNullOrWhiteSpace(value) &&
+            !string.Equals(value, ignoredValue, StringComparison.OrdinalIgnoreCase))
         {
-            return request.Type.ToLowerInvariant() switch
-            {
-                "manga" =>
-                    $"{RootUrl}/baca-manga/",
-
-                "manhwa" =>
-                    $"{RootUrl}/baca-manhwa/",
-
-                "manhua" =>
-                    $"{RootUrl}/baca-manhua/",
-
-                _ =>
-                    $"{RootUrl}/daftar-komik/"
-            };
+            query.Add($"{name}={Uri.EscapeDataString(value.ToLowerInvariant())}");
         }
-
-        if (string.Equals(
-                request.Section,
-                "latest",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            return $"{RootUrl}/komik-terbaru/";
-        }
-
-        if (string.Equals(
-                request.Sort,
-                "Latest Update",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            return $"{RootUrl}/komik-terbaru/";
-        }
-
-        if (string.Equals(
-                request.Sort,
-                "Latest Added",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            return $"{RootUrl}/daftar-komik/";
-        }
-
-        if (string.Equals(
-                request.Sort,
-                "A-Z",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            return $"{RootUrl}/daftar-komik/";
-        }
-
-        if (string.Equals(
-                request.Sort,
-                "Z-A",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            return $"{RootUrl}/daftar-komik/";
-        }
-
-        return $"{RootUrl}/komik-populer/";
     }
 
     private static IReadOnlyList<Manga> ParseMangaCards(
@@ -212,53 +180,38 @@ public sealed class BacaKomikCatalogSource : IComicCatalogSource
         var seen = new HashSet<string>(
             StringComparer.OrdinalIgnoreCase);
 
-        foreach (var anchor in document.DocumentNode
-                     .SelectNodes("//a[@href]") ??
+        foreach (var card in document.DocumentNode
+                     .SelectNodes("//div[contains(@class,'animepost')]") ??
                  Enumerable.Empty<HtmlNode>())
         {
-            var href =
-                anchor.GetAttributeValue(
-                    "href",
-                    string.Empty)
-                .Trim();
+            var anchor = card.SelectSingleNode(
+                ".//div[contains(@class,'animposx')]//a[@href]");
+            var image = card.SelectSingleNode(
+                ".//div[contains(@class,'limit')]//img");
 
-            if (!href.Contains(
-                    "/komik/",
-                    StringComparison.OrdinalIgnoreCase))
-            {
+            if (anchor is null)
                 continue;
-            }
 
-            if (href.Contains(
-                    "/chapter-",
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            if (href.Contains(
-                    "/genres/",
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            var url = NormalizeUrl(href);
+            var url = NormalizeUrl(anchor.GetAttributeValue("href", string.Empty));
 
             if (!seen.Add(url))
                 continue;
 
-            var image =
-                anchor.SelectSingleNode(".//img");
+            var title = CleanTitle(
+                image?.GetAttributeValue("alt", string.Empty));
 
-            var title =
-                GetTitle(anchor, image);
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                title = CleanTitle(
+                    card.SelectSingleNode(
+                        ".//*[contains(@class,'tt')]//h4")?.InnerText ??
+                    anchor.InnerText);
+            }
 
             if (string.IsNullOrWhiteSpace(title))
                 continue;
 
-            var cover =
-                GetImageUrl(image);
+            var cover = GetImageUrl(image);
 
             results.Add(
                 new Manga(

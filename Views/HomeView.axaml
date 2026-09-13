@@ -42,7 +42,11 @@
             <ItemsControl ItemsSource="{Binding ContinueReading}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <UniformGrid Columns="2" HorizontalAlignment="Center" />
+                        <WrapPanel
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Stretch"
+                            ItemWidth="272"
+                            ItemHeight="322" />
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
 

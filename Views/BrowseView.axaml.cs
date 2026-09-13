@@ -20,6 +20,7 @@ public partial class BrowseView : UserControl
     private readonly BacaKomikCatalogSource _bacaCatalog;
     private readonly BacaKomikSource _bacaSource;
     private IComicSource _activeSource;
+    private IComicCatalogSource _activeCatalog;
     private readonly Dictionary<string, ComicSourceDescriptor> _sourceDescriptors =
         new(StringComparer.OrdinalIgnoreCase);
     private readonly ReadingProgressService _readingProgress;
@@ -45,6 +46,7 @@ public partial class BrowseView : UserControl
     private bool _catalogLoading;
     private bool _catalogHasMore = true;
     private int _sourceGeneration;
+    private bool _filtersReady;
     public BrowseView()
     {
         InitializeComponent();
@@ -54,9 +56,9 @@ public partial class BrowseView : UserControl
         _bacaCatalog = new BacaKomikCatalogSource();
         _bacaSource = new BacaKomikSource();
         _activeSource = _bacaSource;
+        _activeCatalog = _bacaCatalog;
         _readingProgress = new ReadingProgressService();
 
-        BuildSections();
         BuildFilters();
 
         Loaded += BrowseView_Loaded;
@@ -66,7 +68,11 @@ public partial class BrowseView : UserControl
         ExtensionLanguageComboBox.SelectionChanged += ExtensionLanguageComboBox_SelectionChanged;
         BackButton.Click += BackToExtensions_Click;
         SearchButton.Click += Search_Click;
-        ApplyFilterButton.Click += ApplyFilter_Click;
+        GenreComboBox.SelectionChanged += FilterSelectionChanged;
+        TypeComboBox.SelectionChanged += FilterSelectionChanged;
+        StatusComboBox.SelectionChanged += FilterSelectionChanged;
+        FormatComboBox.SelectionChanged += FilterSelectionChanged;
+        SortComboBox.SelectionChanged += FilterSelectionChanged;
         DetailBackButton.Click += DetailBackButton_Click;
 
         ReaderBackButton.Click += ReaderBackButton_Click;
@@ -129,6 +135,12 @@ public partial class BrowseView : UserControl
         if (uri.Host.Contains("bacakomik", StringComparison.OrdinalIgnoreCase))
         {
             _activeSource = _bacaSource;
+            return;
+        }
+
+        if (uri.Host.Contains("shinigami", StringComparison.OrdinalIgnoreCase))
+        {
+            _activeSource = new ShinigamiSource();
             return;
         }
 
@@ -222,7 +234,8 @@ public partial class BrowseView : UserControl
                     source.Language,
                     source.BaseUrl,
                     extension.PackageName,
-                    extension.VersionName);
+                    extension.VersionName,
+                    source.AlternateBaseUrls);
 
                 InstalledContainer.Children.Add(
                     CreateSourceCard(
@@ -408,14 +421,23 @@ public partial class BrowseView : UserControl
         var generation = ++_sourceGeneration;
         ComicSourceDescriptor? descriptor = null;
 
-        _activeSource = sourceId.Equals(
-                "bacakomik",
-                StringComparison.OrdinalIgnoreCase)
-            ? _bacaSource
-            : _sourceDescriptors.TryGetValue(sourceId, out descriptor)
-                ? new NativeExtensionSource(descriptor)
-                : new UnsupportedExtensionSource(new ComicSourceDescriptor(
-                    sourceId, title, string.Empty, string.Empty, string.Empty, string.Empty));
+        if (sourceId.Equals("bacakomik", StringComparison.OrdinalIgnoreCase))
+        {
+            _activeSource = _bacaSource;
+        }
+        else if (_sourceDescriptors.TryGetValue(sourceId, out descriptor))
+        {
+            _activeSource = descriptor.Name.Contains("shinigami", StringComparison.OrdinalIgnoreCase) ||
+                             descriptor.BaseUrl.Contains("shinigami", StringComparison.OrdinalIgnoreCase)
+                ? new ShinigamiSource()
+                : new NativeExtensionSource(descriptor);
+        }
+        else
+        {
+            _activeSource = new UnsupportedExtensionSource(new ComicSourceDescriptor(
+                sourceId, title, string.Empty, string.Empty, string.Empty, string.Empty));
+        }
+                _activeCatalog = _activeSource as IComicCatalogSource ?? _bacaCatalog;
 
         if (!sourceId.Equals(
                 "bacakomik",
@@ -428,19 +450,17 @@ public partial class BrowseView : UserControl
 
             SourceTitle.Text = title;
             SourceDescription.Text =
-                _activeSource is NativeExtensionSource
+                _activeSource is NativeExtensionSource or ShinigamiSource
                     ? $"{descriptor?.BaseUrl ?? title} • native adapter aktif"
                     : "Source terdeteksi, tetapi metadata URL belum tersedia.";
 
-            SearchBox.IsEnabled = _activeSource is NativeExtensionSource;
-            SearchButton.IsEnabled = _activeSource is NativeExtensionSource;
-            FilterBorder.IsVisible = false;
+            SearchBox.IsEnabled = _activeSource is IComicCatalogSource;
+            SearchButton.IsEnabled = _activeSource is IComicCatalogSource;
+            FilterBorder.IsVisible = _activeSource is IComicCatalogSource;
             MangaGrid.Items.Clear();
 
-            CatalogStatus.Text =
-                _activeSource is NativeExtensionSource
-                    ? "Ketik judul lalu tekan Cari untuk memuat komik dari source ini."
-                    : "Source belum memiliki adapter yang bisa dipakai.";
+            BuildFilters();
+            await LoadCatalogAsync();
 
             return;
         }
@@ -458,7 +478,6 @@ public partial class BrowseView : UserControl
         SearchButton.IsEnabled = true;
         FilterBorder.IsVisible = true;
 
-        BuildSections();
         BuildFilters();
 
         await LoadCatalogAsync();
@@ -478,43 +497,10 @@ public partial class BrowseView : UserControl
     }
 
 
-    private void BuildSections()
-    {
-        SectionContainer.Children.Clear();
-
-        AddSectionButton("Popular", "popular");
-        AddSectionButton("Latest", "latest");
-    }
-
-
-    private void AddSectionButton(
-        string title,
-        string section)
-    {
-        var button = new Button
-        {
-            Content = title,
-            Classes = { "section-button" },
-            Padding = new Thickness(16, 8),
-            Margin = new Thickness(0, 0, 5, 0)
-        };
-
-        button.Click += async (_, _) =>
-        {
-            _currentSection = section;
-            await LoadCatalogAsync();
-        };
-
-        SectionContainer.Children.Add(button);
-    }
-
-
-    private string _currentSection = "popular";
-
-
     private void BuildFilters()
     {
-        var filters = _bacaCatalog.Filters;
+        _filtersReady = false;
+        var filters = _activeCatalog.Filters;
 
         var genre = filters.FirstOrDefault(
             x => x.Id == "genre");
@@ -560,14 +546,15 @@ public partial class BrowseView : UserControl
 
         if (SortComboBox.ItemCount > 0)
             SortComboBox.SelectedIndex = 0;
+
+        _filtersReady = true;
+
     }
 
-
-    private async void ApplyFilter_Click(
-        object? sender,
-        RoutedEventArgs e)
+    private async void FilterSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        await LoadCatalogAsync();
+        if (_filtersReady)
+            await LoadCatalogAsync();
     }
 
     private async void MainScrollViewer_ScrollChanged(
@@ -587,10 +574,12 @@ public partial class BrowseView : UserControl
 
     private async Task LoadCatalogAsync(bool append = false)
     {
-        if (_activeSource is not BacaKomikSource)
+        if (_activeSource is not IComicCatalogSource)
             return;
 
         var generation = _sourceGeneration;
+        var source = _activeSource;
+        var catalog = _activeCatalog;
 
         if (_catalogLoading)
             return;
@@ -609,19 +598,21 @@ public partial class BrowseView : UserControl
                 : "Memuat katalog...";
 
             var request = new SourceCatalogRequest(
-                Section: _currentSection,
-                Genre: GetFilterValue(GenreComboBox),
+                Section: "popular",
+                Genre: GetComboValue(GenreComboBox),
                 Type: GetComboValue(TypeComboBox),
                 Status: GetComboValue(StatusComboBox),
                 Format: GetComboValue(FormatComboBox),
                 Sort: GetComboValue(SortComboBox),
                 Page: _catalogPage);
 
-            var results =
-                await _bacaCatalog.GetCatalogAsync(request);
+            IReadOnlyList<Manga> results;
+
+            results = await catalog.GetCatalogAsync(request);
 
             if (generation != _sourceGeneration ||
-                _activeSource is not BacaKomikSource)
+                !ReferenceEquals(source, _activeSource) ||
+                !ReferenceEquals(catalog, _activeCatalog))
                 return;
 
             if (append)
@@ -635,7 +626,9 @@ public partial class BrowseView : UserControl
             CatalogStatus.Text =
                 append
                     ? $"{MangaGrid.Items.Count} manga tersedia."
-                    : $"{results.Count} manga ditemukan. Scroll untuk memuat lebih banyak.";
+                    : results.Count > 0
+                        ? $"{results.Count} manga ditemukan. Scroll untuk memuat lebih banyak."
+                        : "Katalog source belum dapat diakses. Coba Cari untuk memuat daftar komik.";
         }
         catch (Exception ex)
         {
@@ -683,7 +676,9 @@ public partial class BrowseView : UserControl
         catch (Exception ex)
         {
             CatalogStatus.Text =
-                $"Search gagal: {ex.Message}";
+                ex.Message.Contains("403", StringComparison.OrdinalIgnoreCase)
+                    ? "Source menolak request otomatis (403). Coba lagi atau buka source melalui browser."
+                    : $"Search gagal: {ex.Message}";
         }
     }
 
@@ -691,30 +686,22 @@ public partial class BrowseView : UserControl
     private static string? GetComboValue(
         ComboBox combo)
     {
-        return combo.SelectedItem?.ToString();
+        var value = combo.SelectedItem?.ToString();
+        return string.Equals(value, "All", StringComparison.OrdinalIgnoreCase)
+            ? null
+            : value;
     }
-
-    private static string? GetFilterValue(Control control)
-    {
-        if (control is ListBox list)
-        {
-            var selected = list.SelectedItems?
-                .OfType<string>()
-                .Where(x => !string.Equals(x, "All", StringComparison.OrdinalIgnoreCase));
-
-            return selected is null ? null : string.Join(",", selected);
-        }
-
-        return (control as ComboBox)?.SelectedItem?.ToString();
-    }
-
 
     private void RenderMangaGrid(
         IReadOnlyList<Manga> mangas)
     {
         MangaGrid.Items.Clear();
+        MangaGrid.IsVisible = true;
 
-        foreach (var manga in mangas)
+        foreach (var manga in mangas
+                     .Where(manga => !string.IsNullOrWhiteSpace(manga.Url))
+                     .GroupBy(manga => manga.Url, StringComparer.OrdinalIgnoreCase)
+                     .Select(group => group.First()))
         {
             MangaGrid.Items.Add(
                 CreateMangaCard(manga));

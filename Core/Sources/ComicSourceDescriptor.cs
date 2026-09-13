@@ -6,4 +6,5 @@ public sealed record ComicSourceDescriptor(
     string Language,
     string BaseUrl,
     string ExtensionPackage,
-    string ExtensionVersion);
+    string ExtensionVersion,
+    IReadOnlyList<string>? AlternateBaseUrls = null);

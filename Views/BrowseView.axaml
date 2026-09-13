@@ -214,30 +214,6 @@
                     </Border>
 
 
-                    <!-- SECTION -->
-
-                    <Border
-                        Classes="browse-surface"
-                        CornerRadius="10"
-                        Padding="20"
-                        Margin="0,15,0,0">
-
-                        <StackPanel>
-
-                            <TextBlock
-                                Text="Explore catalog"
-                                FontSize="20"
-                                FontWeight="Bold"/>
-
-                            <StackPanel
-                                x:Name="SectionContainer"
-                                Margin="0,14,0,0"/>
-
-                        </StackPanel>
-
-                    </Border>
-
-
                     <!-- FILTERS -->
 
                     <Border
@@ -267,43 +243,31 @@
                                 RowSpacing="10"
                                 Margin="0,16,0,0">
 
-                                <ListBox
-                                    x:Name="GenreComboBox"
-                                    Height="72"
-                                    SelectionMode="Multiple"
-                                    ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                                <StackPanel>
+                                    <TextBlock Text="Genre" FontSize="12" Opacity="0.65" Margin="0,0,0,5" />
+                                    <ComboBox x:Name="GenreComboBox" Height="40" />
+                                </StackPanel>
 
-                                <ComboBox
-                                    x:Name="TypeComboBox"
-                                    Grid.Column="1"
-                                    Height="40"
-                                    PlaceholderText="Type"/>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="Type" FontSize="12" Opacity="0.65" Margin="0,0,0,5" />
+                                    <ComboBox x:Name="TypeComboBox" Height="40" />
+                                </StackPanel>
 
-                                <ComboBox
-                                    x:Name="StatusComboBox"
-                                    Grid.Column="2"
-                                    Height="40"
-                                    PlaceholderText="Status"/>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Status" FontSize="12" Opacity="0.65" Margin="0,0,0,5" />
+                                    <ComboBox x:Name="StatusComboBox" Height="40" />
+                                </StackPanel>
 
-                                <ComboBox
-                                    x:Name="FormatComboBox"
-                                    Grid.Row="1"
-                                    Height="40"
-                                    PlaceholderText="Format"/>
+                                <StackPanel Grid.Row="1">
+                                    <TextBlock Text="Format" FontSize="12" Opacity="0.65" Margin="0,0,0,5" />
+                                    <ComboBox x:Name="FormatComboBox" Height="40" />
+                                </StackPanel>
 
-                                <ComboBox
-                                    x:Name="SortComboBox"
-                                    Grid.Row="1"
-                                    Grid.Column="1"
-                                    Height="40"
-                                    PlaceholderText="Sort"/>
+                                <StackPanel Grid.Row="1" Grid.Column="1">
+                                    <TextBlock Text="Sort" FontSize="12" Opacity="0.65" Margin="0,0,0,5" />
+                                    <ComboBox x:Name="SortComboBox" Height="40" />
+                                </StackPanel>
 
-                                <Button
-                                    x:Name="ApplyFilterButton"
-                                    Grid.Row="1"
-                                    Grid.Column="2"
-                                    Content="Terapkan filter"
-                                    Height="40"/>
 
                             </Grid>
 
@@ -321,7 +285,8 @@
 
                     <ItemsControl
                         x:Name="MangaGrid"
-                        HorizontalAlignment="Stretch">
+                        HorizontalAlignment="Stretch"
+                        MinHeight="340">
 
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
