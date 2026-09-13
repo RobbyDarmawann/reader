@@ -78,6 +78,9 @@ public class MainWindowViewModel : INotifyPropertyChanged
 
         browse.RequestResume(progress);
 
+        browse.ReturnToHomeRequested +=
+            () => CurrentViewModel = CreateHomeViewModel();
+
         CurrentViewModel = browse;
     }
 

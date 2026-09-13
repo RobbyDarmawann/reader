@@ -28,6 +28,9 @@ public static class LocalDataPaths
     public static string CoverCache =>
         EnsureDirectory("cache", "covers");
 
+    public static string PageCache =>
+        EnsureDirectory("cache", "pages");
+
     public static string Downloads =>
         EnsureDirectory("downloads");
 

@@ -9,6 +9,7 @@ using ComicReader.Core.Sources;
 using ComicReader.Infrastructure.Extensions;
 using ComicReader.Infrastructure.Sources;
 using ComicReader.Infrastructure.Reading;
+using ComicReader.Infrastructure.Storage;
 
 namespace ComicReader.Views;
 
@@ -25,6 +26,8 @@ public partial class BrowseView : UserControl
 
     private readonly ReadingProgressService _readingProgressService =
         new ReadingProgressService();
+    private readonly CoverCacheService _coverCacheService = new();
+    private readonly ComicPageCacheService _pageCacheService = new();
 
     private int _readerPageCount;
     private int _readerCurrentPage;
@@ -33,6 +36,7 @@ public partial class BrowseView : UserControl
 
     private CancellationTokenSource? _progressSaveTimer;
     private bool _isRestoringReadingProgress;
+    private bool _returnToHomeAfterReader;
     public BrowseView()
     {
         InitializeComponent();
@@ -597,7 +601,10 @@ public partial class BrowseView : UserControl
             new Manga(
                 "bacakomik",
                 progress.MangaUrl,
-                progress.MangaTitle);
+                progress.MangaTitle,
+                progress.CoverUrl);
+
+        _returnToHomeAfterReader = true;
 
         var chapter =
             new Chapter(
@@ -1306,8 +1313,15 @@ public partial class BrowseView : UserControl
 
     private async Task LoadPageImageAsync(Image image, ComicPage page)
     {
-        using var client = new HttpClient();
+        var localPath = await _pageCacheService.GetLocalPathAsync(page);
+        if (localPath is not null)
+        {
+            await using var localStream = File.OpenRead(localPath);
+            image.Source = new Bitmap(localStream);
+            return;
+        }
 
+        using var client = new HttpClient();
         client.DefaultRequestHeaders.UserAgent.ParseAdd(
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
             "AppleWebKit/537.36 (KHTML, like Gecko) " +
@@ -1316,15 +1330,10 @@ public partial class BrowseView : UserControl
         if (page.Headers is not null)
         {
             foreach (var header in page.Headers)
-            {
-                client.DefaultRequestHeaders.TryAddWithoutValidation(
-                    header.Key,
-                    header.Value);
-            }
+                client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
         }
 
-        var bytes =
-            await client.GetByteArrayAsync(page.ImageUrl);
+        var bytes = await client.GetByteArrayAsync(page.ImageUrl);
 
         await using var stream =
             new MemoryStream(bytes);
@@ -1352,8 +1361,17 @@ public partial class BrowseView : UserControl
                 "AppleWebKit/537.36 (KHTML, like Gecko) " +
                 "Chrome/140.0 Safari/537.36");
 
-            var bytes =
-                await client.GetByteArrayAsync(url);
+            var localPath =
+                await _coverCacheService.GetLocalPathAsync(url);
+
+            if (localPath is not null && File.Exists(localPath))
+            {
+                await using var localStream = File.OpenRead(localPath);
+                image.Source = new Bitmap(localStream);
+                return;
+            }
+
+            var bytes = await client.GetByteArrayAsync(url);
 
             await using var stream =
                 new MemoryStream(bytes);
@@ -1506,7 +1524,8 @@ public partial class BrowseView : UserControl
                 _currentManga.Title,
                 _currentChapter.Name,
                 offset,
-                maximum);
+                maximum,
+                _currentManga.CoverUrl);
         }
         catch (Exception ex)
         {
@@ -1603,10 +1622,16 @@ public partial class BrowseView : UserControl
         await UpdateResumeReadingButtonAsync();
 
         ReaderPage.IsVisible = false;
-        MangaDetailPage.IsVisible = true;
+        MangaDetailPage.IsVisible = !_returnToHomeAfterReader;
 
         MainScrollViewer.IsVisible = true;
         MainScrollViewer.ScrollToHome();
+
+        if (_returnToHomeAfterReader)
+        {
+            _returnToHomeAfterReader = false;
+            (DataContext as BrowseViewModel)?.ReturnToHome();
+        }
     }
 
 

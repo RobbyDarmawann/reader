@@ -1,6 +1,5 @@
 ﻿using Avalonia.Controls;
 using Avalonia.Interactivity;
-using ComicReader.Infrastructure.Reading;
 using ComicReader.ViewModels;
 
 namespace ComicReader.Views;
@@ -19,12 +18,12 @@ public partial class HomeView : UserControl
         if (sender is not Button button)
             return;
 
-        if (button.DataContext is not ReadingProgress progress)
+        if (button.DataContext is not HomeReadingItem item)
             return;
 
         if (DataContext is not HomeViewModel viewModel)
             return;
 
-        viewModel.Resume(progress);
+        viewModel.Resume(item);
     }
 }

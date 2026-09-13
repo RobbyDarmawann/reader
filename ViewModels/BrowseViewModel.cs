@@ -8,6 +8,10 @@ namespace ComicReader.ViewModels;
 
 public sealed class BrowseViewModel : INotifyPropertyChanged
 {
+    public event Action? ReturnToHomeRequested;
+
+    public void ReturnToHome() => ReturnToHomeRequested?.Invoke();
+
     private readonly KeiyoushiRepositoryService _repositoryService = new();
     private readonly ExtensionInstallService _installService = new();
 

@@ -17,20 +17,12 @@
             <views:HomeView />
         </DataTemplate>
 
-        <DataTemplate DataType="{x:Type vm:LibraryViewModel}">
-            <views:LibraryView />
-        </DataTemplate>
-
         <DataTemplate DataType="{x:Type vm:BrowseViewModel}">
             <views:BrowseView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:DownloadsViewModel}">
             <views:DownloadsView />
-        </DataTemplate>
-
-        <DataTemplate DataType="{x:Type vm:HistoryViewModel}">
-            <views:HistoryView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
@@ -132,11 +124,6 @@
                             Command="{Binding NavigateHomeCommand}" />
 
                         <Button
-                            Content="Library"
-                            Classes="nav-button"
-                            Command="{Binding NavigateLibraryCommand}" />
-
-                        <Button
                             Content="Browse"
                             Classes="nav-button"
                             Command="{Binding NavigateBrowseCommand}" />
@@ -152,11 +139,6 @@
                             Content="Downloads"
                             Classes="nav-button"
                             Command="{Binding NavigateDownloadsCommand}" />
-
-                        <Button
-                            Content="History"
-                            Classes="nav-button"
-                            Command="{Binding NavigateHistoryCommand}" />
 
                         <Button
                             Content="Settings"

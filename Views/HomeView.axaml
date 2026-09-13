@@ -35,35 +35,25 @@
                 <ItemsControl.ItemTemplate>
 
                     <DataTemplate
-                        x:DataType="reading:ReadingProgress">
+                        x:DataType="vm:HomeReadingItem">
 
                         <Border
-                            Padding="20"
+                            Padding="18"
                             Margin="0,0,0,12"
                             CornerRadius="12"
-                            Background="#1E1E1E"
-                            MaxWidth="800">
+                            Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                            MaxWidth="860">
 
                             <Grid
-                                ColumnDefinitions="120,*">
+                                ColumnDefinitions="112,*">
 
-                                <Border
-                                    Width="100"
-                                    Height="140"
-                                    Background="#303030"
-                                    CornerRadius="8">
-
-                                    <TextBlock
-                                        Text="COVER"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center"
-                                        Opacity="0.5" />
-
+                                <Border Width="100" Height="140" Background="#303030" CornerRadius="8">
+                                    <Image Source="{Binding CoverUrl}" Stretch="UniformToFill" />
                                 </Border>
 
                                 <StackPanel
                                     Grid.Column="1"
-                                    Margin="20,0,0,0"
+                                    Margin="16,0,0,0"
                                     VerticalAlignment="Center">
 
                                     <TextBlock
@@ -103,7 +93,7 @@
                 IsVisible="{Binding HasContinueReading}"
                 Padding="20"
                 Margin="0,10,0,0"
-                Background="#1E1E1E"
+                            Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
                 CornerRadius="12"
                 MaxWidth="800">
 
@@ -119,7 +109,7 @@
                 FontWeight="Bold"
                 Margin="0,40,0,18" />
 
-            <Border Padding="24" Background="#1E1E1E" CornerRadius="10" MaxWidth="800">
+            <Border Padding="24" Background="{DynamicResource SystemControlBackgroundAltHighBrush}" CornerRadius="10" MaxWidth="800">
                 <StackPanel>
                     <TextBlock Text="Latest updates" FontSize="18" FontWeight="Bold" />
                     <TextBlock Text="Update terbaru dari source yang dipakai akan muncul di sini. Jelajahi katalog untuk mulai membaca."

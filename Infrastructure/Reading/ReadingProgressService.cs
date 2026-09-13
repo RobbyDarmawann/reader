@@ -11,7 +11,8 @@ public sealed record ReadingProgress(
     double ScrollMaximum,
     DateTimeOffset UpdatedAt,
     int PageIndex = 0,
-    double PageProgress = 0);
+    double PageProgress = 0,
+    string? CoverUrl = null);
 
 public sealed class ReadingProgressService
 {
@@ -67,6 +68,11 @@ public sealed class ReadingProgressService
             connection,
             "PageProgress",
             "REAL NOT NULL DEFAULT 0");
+
+        TryAddColumn(
+            connection,
+            "CoverUrl",
+            "TEXT NULL");
     }
 
     private static void TryAddColumn(
@@ -97,7 +103,8 @@ public sealed class ReadingProgressService
         string mangaTitle,
         string chapterName,
         double scrollOffset,
-        double scrollMaximum)
+        double scrollMaximum,
+        string? coverUrl = null)
     {
         using var connection = CreateConnection();
 
@@ -114,7 +121,8 @@ public sealed class ReadingProgressService
                 ChapterName,
                 ScrollOffset,
                 ScrollMaximum,
-                UpdatedAt
+                UpdatedAt,
+                CoverUrl
             )
             VALUES
             (
@@ -124,7 +132,8 @@ public sealed class ReadingProgressService
                 $chapterName,
                 $scrollOffset,
                 $scrollMaximum,
-                $updatedAt
+                $updatedAt,
+                $coverUrl
             )
             ON CONFLICT(MangaUrl, ChapterUrl)
             DO UPDATE SET
@@ -132,7 +141,8 @@ public sealed class ReadingProgressService
                 ChapterName = excluded.ChapterName,
                 ScrollOffset = excluded.ScrollOffset,
                 ScrollMaximum = excluded.ScrollMaximum,
-                UpdatedAt = excluded.UpdatedAt;
+                UpdatedAt = excluded.UpdatedAt,
+                CoverUrl = excluded.CoverUrl;
             """;
 
         command.Parameters.AddWithValue(
@@ -163,6 +173,10 @@ public sealed class ReadingProgressService
             "$updatedAt",
             DateTimeOffset.UtcNow.ToString("O"));
 
+        command.Parameters.AddWithValue(
+            "$coverUrl",
+            (object?)coverUrl ?? DBNull.Value);
+
         command.ExecuteNonQuery();
     }
 
@@ -184,7 +198,8 @@ public sealed class ReadingProgressService
                 ChapterName,
                 ScrollOffset,
                 ScrollMaximum,
-                UpdatedAt
+                UpdatedAt,
+                CoverUrl
             FROM ReadingProgress
             WHERE MangaUrl = $mangaUrl
               AND ChapterUrl = $chapterUrl
@@ -211,7 +226,8 @@ public sealed class ReadingProgressService
             reader.GetString(3),
             reader.GetDouble(4),
             reader.GetDouble(5),
-            DateTimeOffset.Parse(reader.GetString(6)));
+            DateTimeOffset.Parse(reader.GetString(6)),
+            CoverUrl: reader.IsDBNull(7) ? null : reader.GetString(7));
     }
 
     public ReadingProgress? GetLatest(
@@ -231,7 +247,8 @@ public sealed class ReadingProgressService
                 ChapterName,
                 ScrollOffset,
                 ScrollMaximum,
-                UpdatedAt
+                UpdatedAt,
+                CoverUrl
             FROM ReadingProgress
             WHERE MangaUrl = $mangaUrl
             ORDER BY UpdatedAt DESC
@@ -252,7 +269,8 @@ public sealed class ReadingProgressService
             reader.GetString(3),
             reader.GetDouble(4),
             reader.GetDouble(5),
-            DateTimeOffset.Parse(reader.GetString(6)));
+            DateTimeOffset.Parse(reader.GetString(6)),
+            CoverUrl: reader.IsDBNull(7) ? null : reader.GetString(7));
     }
     public IReadOnlyList<ReadingProgress> GetAllLatest()
     {
@@ -270,7 +288,8 @@ public sealed class ReadingProgressService
                 ChapterName,
                 ScrollOffset,
                 ScrollMaximum,
-                UpdatedAt
+                UpdatedAt,
+                CoverUrl
             FROM ReadingProgress
             WHERE rowid IN
             (
@@ -297,8 +316,8 @@ public sealed class ReadingProgressService
                     reader.GetString(3),
                     reader.GetDouble(4),
                     reader.GetDouble(5),
-                    DateTimeOffset.Parse(
-                        reader.GetString(6))));
+                    DateTimeOffset.Parse(reader.GetString(6)),
+                    CoverUrl: reader.IsDBNull(7) ? null : reader.GetString(7)));
         }
 
         return result;
