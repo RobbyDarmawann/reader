@@ -1,0 +1,69 @@
+﻿using Avalonia.Controls;
+using Avalonia.Interactivity;
+using ComicReader.Infrastructure.Extensions;
+using ComicReader.ViewModels;
+
+namespace ComicReader.Views;
+
+public partial class BrowseView : UserControl
+{
+    private readonly BrowseViewModel _viewModel;
+
+    public BrowseView()
+    {
+        InitializeComponent();
+
+        _viewModel = new BrowseViewModel();
+
+        DataContext = _viewModel;
+
+        AttachedToVisualTree += async (_, _) =>
+        {
+            AttachedToVisualTree -= (_, _) => { };
+
+            await _viewModel.LoadExtensionsAsync();
+
+            RefreshExtensionList();
+        };
+    }
+
+    private async void Refresh_Click(
+        object? sender,
+        RoutedEventArgs e)
+    {
+        await _viewModel.LoadExtensionsAsync();
+
+        RefreshExtensionList();
+    }
+
+    private void LanguageChanged(
+        object? sender,
+        SelectionChangedEventArgs e)
+    {
+        if (LanguageBox.SelectedItem is string language)
+        {
+            _viewModel.SelectedLanguage = language;
+
+            RefreshExtensionList();
+        }
+    }
+
+    private async void Install_Click(
+        object? sender,
+        RoutedEventArgs e)
+    {
+        if (sender is Button button &&
+            button.DataContext is KeiyoushiExtension extension)
+        {
+            await _viewModel.InstallAsync(extension);
+
+            RefreshExtensionList();
+        }
+    }
+
+    private void RefreshExtensionList()
+    {
+        ExtensionList.ItemsSource =
+            _viewModel.FilteredExtensions;
+    }
+}

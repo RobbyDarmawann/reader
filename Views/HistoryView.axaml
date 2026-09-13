@@ -1,0 +1,66 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:ComicReader.ViewModels"
+    xmlns:reading="using:ComicReader.Infrastructure.Reading"
+    x:Class="ComicReader.Views.HistoryView"
+    x:DataType="vm:HistoryViewModel">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="40" MaxWidth="900">
+
+        <TextBlock
+            Text="History"
+            FontSize="32"
+            FontWeight="Bold" />
+
+        <TextBlock
+            Text="Your reading history."
+            FontSize="16"
+            Opacity="0.65"
+            Margin="0,8,0,30" />
+
+        <ItemsControl ItemsSource="{Binding Entries}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="reading:ReadingProgress">
+                    <Border Padding="18" Margin="0,0,0,10" Background="#1E1E1E" CornerRadius="10">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel>
+                                <TextBlock Text="{Binding MangaTitle}" FontSize="18" FontWeight="Bold" />
+                                <TextBlock Text="{Binding ChapterName}" Margin="0,5,0,0" Opacity="0.7" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="1" Text="{Binding UpdatedAt, StringFormat='{}{0:g}'}"
+                                       VerticalAlignment="Center" Opacity="0.55" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Border Height="220" Background="#1E1E1E" CornerRadius="12"
+                IsVisible="{Binding IsEmpty}">
+
+            <StackPanel
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+
+                <TextBlock
+                    Text="No reading history"
+                    FontSize="22"
+                    FontWeight="Bold"
+                    HorizontalAlignment="Center" />
+
+                <TextBlock
+                    Text="Manga you read will appear here."
+                    Margin="0,8,0,0"
+                    Opacity="0.6"
+                    HorizontalAlignment="Center" />
+
+            </StackPanel>
+
+        </Border>
+
+    </StackPanel>
+    </ScrollViewer>
+
+</UserControl>

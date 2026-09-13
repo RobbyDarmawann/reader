@@ -1,0 +1,262 @@
+﻿using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.Media;
+using ComicReader.Infrastructure.Extensions;
+using ComicReader.ViewModels;
+
+namespace ComicReader.Views;
+
+public partial class BrowseView : UserControl
+{
+    private readonly BrowseViewModel _viewModel;
+
+    public BrowseView()
+    {
+        InitializeComponent();
+
+        _viewModel = new BrowseViewModel();
+
+        Loaded += BrowseView_Loaded;
+    }
+
+    private async void BrowseView_Loaded(
+        object? sender,
+        RoutedEventArgs e)
+    {
+        Loaded -= BrowseView_Loaded;
+
+        await LoadDataAsync();
+    }
+
+    private async void Refresh_Click(
+        object? sender,
+        RoutedEventArgs e)
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        RefreshButton.IsEnabled = false;
+
+        ExtensionStatus.Text =
+            "Mengambil daftar extension dari Keiyoushi...";
+
+        try
+        {
+            await _viewModel.LoadExtensionsAsync();
+
+            BuildInstalledSources();
+            BuildExtensions();
+
+            ExtensionStatus.Text =
+                _viewModel.StatusText;
+        }
+        catch (Exception ex)
+        {
+            ExtensionStatus.Text =
+                $"Gagal: {ex.Message}";
+        }
+        finally
+        {
+            RefreshButton.IsEnabled = true;
+        }
+    }
+
+    private void BuildInstalledSources()
+    {
+        InstalledContainer.Children.Clear();
+
+        var installedPackages =
+            _viewModel.InstalledPackages;
+
+        var installed =
+            _viewModel.Extensions
+                .Where(x =>
+                    installedPackages.Contains(
+                        x.PackageName))
+                .ToList();
+
+        if (installed.Count == 0)
+        {
+            InstalledStatus.Text =
+                "Belum ada extension yang terpasang.";
+
+            return;
+        }
+
+        InstalledStatus.Text =
+            $"{installed.Count} extension terpasang.";
+
+        foreach (var extension in installed)
+        {
+            var panel = new StackPanel
+            {
+                Spacing = 4
+            };
+
+            panel.Children.Add(
+                new TextBlock
+                {
+                    Text = extension.Name,
+                    FontSize = 17,
+                    FontWeight = FontWeight.Bold
+                });
+
+            panel.Children.Add(
+                new TextBlock
+                {
+                    Text = extension.PackageName,
+                    FontSize = 12,
+                    Opacity = 0.5
+                });
+
+            panel.Children.Add(
+                new TextBlock
+                {
+                    Text = $"Version {extension.VersionName}",
+                    FontSize = 13,
+                    Opacity = 0.7
+                });
+
+            var border = new Border
+            {
+                Background =
+                    new SolidColorBrush(
+                        Color.Parse("#252525")),
+
+                CornerRadius = new Avalonia.CornerRadius(8),
+
+                Padding = new Avalonia.Thickness(16),
+
+                Margin =
+                    new Avalonia.Thickness(0, 0, 0, 10),
+
+                Child = panel
+            };
+
+            InstalledContainer.Children.Add(border);
+        }
+    }
+
+    private void BuildExtensions()
+    {
+        ExtensionContainer.Children.Clear();
+
+        foreach (var extension in
+                 _viewModel.Extensions)
+        {
+            var panel = new StackPanel
+            {
+                Spacing = 5
+            };
+
+            panel.Children.Add(
+                new TextBlock
+                {
+                    Text = extension.Name,
+                    FontSize = 18,
+                    FontWeight = FontWeight.Bold
+                });
+
+            panel.Children.Add(
+                new TextBlock
+                {
+                    Text = extension.PackageName,
+                    FontSize = 12,
+                    Opacity = 0.5
+                });
+
+            panel.Children.Add(
+                new TextBlock
+                {
+                    Text =
+                        $"Version {extension.VersionName} • " +
+                        $"{extension.Sources.Count} source",
+                    FontSize = 13,
+                    Opacity = 0.7
+                });
+
+            var installButton =
+                new Button
+                {
+                    Content =
+                        _viewModel.InstalledPackages.Contains(
+                            extension.PackageName)
+                            ? "Installed"
+                            : "Install",
+
+                    Width = 100,
+
+                    HorizontalAlignment =
+                        Avalonia.Layout.HorizontalAlignment.Right,
+
+                    VerticalAlignment =
+                        Avalonia.Layout.VerticalAlignment.Center,
+
+                    Padding =
+                        new Avalonia.Thickness(18, 0)
+                };
+
+            installButton.Click +=
+                async (_, _) =>
+                {
+                    installButton.IsEnabled = false;
+
+                    await _viewModel.InstallAsync(
+                        extension);
+
+                    installButton.Content =
+                        _viewModel.InstalledPackages.Contains(
+                            extension.PackageName)
+                            ? "Installed"
+                            : "Install";
+
+                    BuildInstalledSources();
+
+                    ExtensionStatus.Text =
+                        _viewModel.StatusText;
+
+                    installButton.IsEnabled = true;
+                };
+
+            var grid =
+                new Grid
+                {
+                    ColumnDefinitions =
+                        new ColumnDefinitions("*,Auto")
+                };
+
+            grid.Children.Add(panel);
+
+            Grid.SetColumn(
+                installButton,
+                1);
+
+            grid.Children.Add(
+                installButton);
+
+            var border =
+                new Border
+                {
+                    Background =
+                        new SolidColorBrush(
+                            Color.Parse("#252525")),
+
+                    CornerRadius =
+                        new Avalonia.CornerRadius(8),
+
+                    Padding =
+                        new Avalonia.Thickness(18),
+
+                    Margin =
+                        new Avalonia.Thickness(0, 0, 0, 10),
+
+                    Child = grid
+                };
+
+            ExtensionContainer.Children.Add(
+                border);
+        }
+    }
+}

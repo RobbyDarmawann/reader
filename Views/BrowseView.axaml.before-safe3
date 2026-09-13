@@ -1,0 +1,94 @@
+﻿<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    x:Class="ComicReader.Views.BrowseView">
+
+    <ScrollViewer>
+
+        <StackPanel Margin="32">
+
+            <TextBlock
+                Text="Browse"
+                FontSize="32"
+                FontWeight="Bold"/>
+
+            <TextBlock
+                Text="Find manga from your installed sources and extensions."
+                FontSize="16"
+                Opacity="0.65"
+                Margin="0,8,0,28"/>
+
+            <Border
+                Background="#1E1E1E"
+                CornerRadius="10"
+                Padding="20"
+                Margin="0,0,0,20">
+
+                <StackPanel>
+
+                    <TextBlock
+                        Text="Installed Sources"
+                        FontSize="22"
+                        FontWeight="Bold"/>
+
+                    <TextBlock
+                        x:Name="InstalledStatus"
+                        Text="Memeriksa extension yang terpasang..."
+                        Margin="0,8,0,0"
+                        Opacity="0.65"/>
+
+                    <StackPanel
+                        x:Name="InstalledContainer"
+                        Margin="0,15,0,0"/>
+
+                </StackPanel>
+
+            </Border>
+
+            <Border
+                Background="#1E1E1E"
+                CornerRadius="10"
+                Padding="20">
+
+                <StackPanel>
+
+                    <Grid ColumnDefinitions="*,Auto">
+
+                        <StackPanel>
+
+                            <TextBlock
+                                Text="Extensions"
+                                FontSize="22"
+                                FontWeight="Bold"/>
+
+                            <TextBlock
+                                x:Name="ExtensionStatus"
+                                Text="Memuat daftar extension..."
+                                Margin="0,6,0,0"
+                                Opacity="0.65"/>
+
+                        </StackPanel>
+
+                        <Button
+                            x:Name="RefreshButton"
+                            Grid.Column="1"
+                            Content="Refresh"
+                            Width="100"
+                            Height="40"
+                            Click="Refresh_Click"/>
+
+                    </Grid>
+
+                    <StackPanel
+                        x:Name="ExtensionContainer"
+                        Margin="0,20,0,0"/>
+
+                </StackPanel>
+
+            </Border>
+
+        </StackPanel>
+
+    </ScrollViewer>
+
+</UserControl>

@@ -1,0 +1,49 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:ComicReader.ViewModels"
+    x:Class="ComicReader.Views.DownloadsView"
+    x:DataType="vm:DownloadsViewModel">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="40" MaxWidth="900">
+
+        <TextBlock
+            Text="Downloads"
+            FontSize="32"
+            FontWeight="Bold" />
+
+        <TextBlock
+            Text="Manage your downloaded chapters."
+            FontSize="16"
+            Opacity="0.65"
+            Margin="0,8,0,30" />
+
+        <Border Padding="24" Background="#1E1E1E" CornerRadius="12">
+
+            <StackPanel
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+
+                <TextBlock
+                    Text="Download queue"
+                    FontSize="22"
+                    FontWeight="Bold"
+                    HorizontalAlignment="Center" />
+
+                <TextBlock
+                    Text="{Binding QueueStatus}"
+                    Margin="0,8,0,0"
+                    Opacity="0.6"
+                    HorizontalAlignment="Center" />
+
+                <TextBlock Text="Storage location" Margin="0,22,0,5" Opacity="0.55" />
+                <TextBlock Text="{Binding DownloadFolder}" TextWrapping="Wrap" />
+            </StackPanel>
+
+        </Border>
+
+    </StackPanel>
+    </ScrollViewer>
+
+</UserControl>

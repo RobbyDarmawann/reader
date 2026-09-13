@@ -1,0 +1,118 @@
+﻿using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using ComicReader.Core.Models;
+using ComicReader.Infrastructure.Extensions;
+using ComicReader.Infrastructure.Sources;
+using ComicReader.ViewModels;
+
+namespace ComicReader.Views;
+
+public partial class BrowseView : UserControl
+{
+    private readonly BrowseViewModel _viewModel;
+
+    public BrowseView()
+    {
+        InitializeComponent();
+
+        _viewModel = new BrowseViewModel();
+
+        DataContext = _viewModel;
+
+        AttachedToVisualTree += async (_, _) =>
+        {
+            await _viewModel.LoadExtensionsAsync();
+            RefreshLists();
+        };
+    }
+
+    private async void Search_Click(
+        object? sender,
+        RoutedEventArgs e)
+    {
+        SelectSource();
+
+        await _viewModel.SearchMangaAsync();
+
+        SearchResultsList.ItemsSource =
+            _viewModel.SearchResults;
+    }
+
+    private async void SearchBox_KeyDown(
+        object? sender,
+        KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter)
+            return;
+
+        SelectSource();
+
+        await _viewModel.SearchMangaAsync();
+
+        SearchResultsList.ItemsSource =
+            _viewModel.SearchResults;
+    }
+
+    private void SelectSource()
+    {
+        if (SourceBox.SelectedItem is IComicSource source)
+            _viewModel.SelectedSource = source;
+    }
+
+    private void OpenManga_Click(
+        object? sender,
+        RoutedEventArgs e)
+    {
+        if (sender is Button button &&
+            button.DataContext is Manga manga)
+        {
+
+        }
+    }
+
+    private async void Refresh_Click(
+        object? sender,
+        RoutedEventArgs e)
+    {
+        await _viewModel.LoadExtensionsAsync();
+        RefreshLists();
+    }
+
+    private void LanguageChanged(
+        object? sender,
+        SelectionChangedEventArgs e)
+    {
+        if (LanguageBox.SelectedItem is string language)
+        {
+            _viewModel.SelectedLanguage = language;
+            RefreshExtensionList();
+        }
+    }
+
+    private async void Install_Click(
+        object? sender,
+        RoutedEventArgs e)
+    {
+        if (sender is Button button &&
+            button.DataContext is KeiyoushiExtension extension)
+        {
+            await _viewModel.InstallAsync(extension);
+        }
+    }
+
+    private void RefreshLists()
+    {
+        RefreshExtensionList();
+
+        SearchResultsList.ItemsSource =
+            _viewModel.SearchResults;
+    }
+
+    private void RefreshExtensionList()
+    {
+        ExtensionList.ItemsSource =
+            _viewModel.FilteredExtensions;
+    }
+}
+
