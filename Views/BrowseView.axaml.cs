@@ -311,7 +311,7 @@ public partial class BrowseView : UserControl
                 Content =
                     _viewModel.InstalledPackages.Contains(
                         extension.PackageName)
-                        ? "Installed"
+                        ? "Uninstall"
                         : "Install",
                 MinWidth = 104,
                 Height = 36,
@@ -327,11 +327,18 @@ public partial class BrowseView : UserControl
                 {
                     install.IsEnabled = false;
 
-                    await _viewModel.InstallAsync(extension);
+                    if (_viewModel.InstalledPackages.Contains(extension.PackageName))
+                    {
+                        await _viewModel.UninstallAsync(extension);
+                        install.Content = "Install";
+                    }
+                    else
+                    {
+                        await _viewModel.InstallAsync(extension);
+                        install.Content = "Uninstall";
+                    }
 
                     BuildInstalledSources();
-
-                    install.Content = "Installed";
                 }
                 catch (Exception ex)
                 {
@@ -608,7 +615,8 @@ public partial class BrowseView : UserControl
             Padding = new Thickness(8),
             Width = 165,
             Height = 318,
-            CornerRadius = new CornerRadius(10)
+            CornerRadius = new CornerRadius(10),
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
         };
 
         var stack = new StackPanel();

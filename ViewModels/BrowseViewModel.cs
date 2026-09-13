@@ -245,6 +245,22 @@ public sealed class BrowseViewModel : INotifyPropertyChanged
         }
     }
 
+    public async Task UninstallAsync(KeiyoushiExtension extension)
+    {
+        try
+        {
+            StatusText = $"Menghapus {extension.Name}...";
+            await _installService.UninstallAsync(extension.PackageName);
+            InstalledPackages.Remove(extension.PackageName);
+            LoadInstalledSources();
+            StatusText = $"{extension.Name} berhasil dihapus. Silakan install ulang untuk uji coba.";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Gagal menghapus {extension.Name}: {ex.Message}";
+        }
+    }
+
     private void ApplyFilter()
     {
         FilteredExtensions.Clear();

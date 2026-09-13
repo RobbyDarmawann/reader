@@ -63,6 +63,44 @@ public sealed class ExtensionInstallService
     public IReadOnlyList<string> GetInstalledPackages() =>
         ReadMetadata().Select(x => x.PackageName).ToList();
 
+    public async Task UninstallAsync(
+        string packageName,
+        CancellationToken cancellationToken = default)
+    {
+        var installed = ReadMetadata();
+        var matches = installed
+            .Where(x => string.Equals(
+                x.PackageName,
+                packageName,
+                StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        foreach (var item in matches)
+        {
+            try
+            {
+                if (File.Exists(item.ApkPath))
+                    File.Delete(item.ApkPath);
+            }
+            catch (IOException)
+            {
+            }
+        }
+
+        installed.RemoveAll(x => string.Equals(
+            x.PackageName,
+            packageName,
+            StringComparison.OrdinalIgnoreCase));
+
+        Directory.CreateDirectory(_extensionDirectory);
+        await File.WriteAllTextAsync(
+            _metadataFile,
+            JsonSerializer.Serialize(
+                installed,
+                new JsonSerializerOptions { WriteIndented = true }),
+            cancellationToken);
+    }
+
     private List<InstalledExtensionMetadata> ReadMetadata()
     {
         try
