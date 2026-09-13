@@ -67,6 +67,9 @@ public class MainWindowViewModel : INotifyPropertyChanged
         home.ResumeRequested +=
             OpenResumeFromHome;
 
+        home.DetailRequested +=
+            OpenDetailFromHome;
+
         return home;
     }
 
@@ -81,6 +84,13 @@ public class MainWindowViewModel : INotifyPropertyChanged
         browse.ReturnToHomeRequested +=
             () => CurrentViewModel = CreateHomeViewModel();
 
+        CurrentViewModel = browse;
+    }
+
+    private void OpenDetailFromHome(ReadingProgress progress)
+    {
+        var browse = new BrowseViewModel();
+        browse.RequestDetail(progress);
         CurrentViewModel = browse;
     }
 

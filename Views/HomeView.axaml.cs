@@ -26,4 +26,15 @@ public partial class HomeView : UserControl
 
         viewModel.Resume(item);
     }
+
+    private void OpenDetailButton_Click(
+        object? sender,
+        RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: HomeReadingItem item } &&
+            DataContext is HomeViewModel viewModel)
+        {
+            viewModel.OpenDetail(item);
+        }
+    }
 }

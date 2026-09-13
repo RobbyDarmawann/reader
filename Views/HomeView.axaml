@@ -12,6 +12,16 @@
 
         <StackPanel Margin="40">
 
+            <StackPanel.Styles>
+                <Style Selector="Button.link-button">
+                    <Setter Property="FontSize" Value="20" />
+                    <Setter Property="FontWeight" Value="Bold" />
+                    <Setter Property="Padding" Value="0" />
+                    <Setter Property="Background" Value="Transparent" />
+                    <Setter Property="BorderThickness" Value="0" />
+                </Style>
+            </StackPanel.Styles>
+
             <TextBlock
                 Text="Welcome back"
                 FontSize="32"
@@ -47,20 +57,26 @@
                             <Grid
                                 ColumnDefinitions="112,*">
 
-                                <Border Width="100" Height="140" Background="#303030" CornerRadius="8">
-                                    <Image Source="{Binding CoverUrl}" Stretch="UniformToFill" />
-                                </Border>
+                                <Button Width="100" Height="140"
+                                        Padding="0"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Click="OpenDetailButton_Click">
+                                    <Border Background="{DynamicResource SystemControlBackgroundLowBrush}" CornerRadius="8">
+                                        <Image Source="{Binding CoverImage}" Stretch="UniformToFill" />
+                                    </Border>
+                                </Button>
 
                                 <StackPanel
                                     Grid.Column="1"
                                     Margin="16,0,0,0"
                                     VerticalAlignment="Center">
 
-                                    <TextBlock
-                                        Text="{Binding MangaTitle}"
-                                        FontSize="20"
-                                        FontWeight="Bold"
-                                        TextWrapping="Wrap" />
+                                    <Button
+                                        Content="{Binding MangaTitle}"
+                                        Classes="link-button"
+                                        HorizontalContentAlignment="Left"
+                                        Click="OpenDetailButton_Click" />
 
                                     <TextBlock
                                         Text="{Binding ChapterName}"

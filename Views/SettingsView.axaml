@@ -9,14 +9,14 @@
             <TextBlock Text="Settings" FontSize="34" FontWeight="Bold" />
             <TextBlock Text="Sesuaikan pengalaman membaca untuk satu perangkat ini."
                        FontSize="16" Opacity="0.65" Margin="0,8,0,28" />
-            <Border Padding="24" Background="#1E1E1E" CornerRadius="12" Margin="0,0,0,16">
+            <Border Padding="24" Background="{DynamicResource SystemControlBackgroundAltHighBrush}" CornerRadius="12" Margin="0,0,0,16">
                 <StackPanel Spacing="12">
                     <TextBlock Text="Appearance" FontSize="20" FontWeight="Bold" />
                     <TextBlock Text="Theme" Opacity="0.65" />
                     <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding SelectedTheme}" />
                 </StackPanel>
             </Border>
-            <Border Padding="24" Background="#1E1E1E" CornerRadius="12" Margin="0,0,0,16">
+            <Border Padding="24" Background="{DynamicResource SystemControlBackgroundAltHighBrush}" CornerRadius="12" Margin="0,0,0,16">
                 <StackPanel Spacing="12">
                     <TextBlock Text="Reading" FontSize="20" FontWeight="Bold" />
                     <TextBlock Text="Reading mode" Opacity="0.65" />
@@ -25,7 +25,7 @@
                                FontSize="12" Opacity="0.55" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
-            <Border Padding="24" Background="#1E1E1E" CornerRadius="12">
+            <Border Padding="24" Background="{DynamicResource SystemControlBackgroundAltHighBrush}" CornerRadius="12">
                 <StackPanel Spacing="12">
                     <TextBlock Text="Downloads" FontSize="20" FontWeight="Bold" />
                     <TextBlock Text="Folder penyimpanan chapter" Opacity="0.65" />

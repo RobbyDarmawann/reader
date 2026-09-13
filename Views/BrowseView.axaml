@@ -125,6 +125,19 @@
                                 Margin="0,6,0,0"
                                 Opacity="0.65"/>
 
+                            <Grid ColumnDefinitions="*,220" ColumnSpacing="10" Margin="0,16,0,0">
+                                <TextBox
+                                    x:Name="ExtensionSearchBox"
+                                    PlaceholderText="Cari nama extension atau source..."
+                                    Height="40"
+                                    VerticalContentAlignment="Center" />
+                                <ComboBox
+                                    x:Name="ExtensionLanguageComboBox"
+                                    Grid.Column="1"
+                                    PlaceholderText="Semua negara / bahasa"
+                                    Height="40" />
+                            </Grid>
+
                             <StackPanel
                                 x:Name="ExtensionContainer"
                                 Margin="0,20,0,0"/>
@@ -360,7 +373,7 @@
 
 
                     <Border
-                        Background="#1E1E1E"
+                        Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
                         CornerRadius="10"
                         Padding="20"
                         Margin="0,20,0,0">
@@ -413,7 +426,7 @@
 
 
                     <Border
-                        Background="#1E1E1E"
+                        Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
                         CornerRadius="10"
                         Padding="20"
                         Margin="0,20,0,0">

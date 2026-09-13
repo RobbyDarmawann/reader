@@ -19,7 +19,7 @@
             Opacity="0.65"
             Margin="0,8,0,30" />
 
-        <Border Padding="24" Background="#1E1E1E" CornerRadius="12">
+        <Border Padding="24" Background="{DynamicResource SystemControlBackgroundAltHighBrush}" CornerRadius="12">
 
             <StackPanel
                 HorizontalAlignment="Center"

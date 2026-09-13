@@ -17,15 +17,29 @@ public sealed class BrowseViewModel : INotifyPropertyChanged
 
     private string _statusText = "Belum memuat extension.";
     private string _selectedLanguage = "All languages";
+    private string _extensionQuery = string.Empty;
 
     private const string ResumeMarker = "local-resume";
 
     public ReadingProgress? PendingResume { get; private set; }
+    public ReadingProgress? PendingDetail { get; private set; }
 
     public void RequestResume(
         ReadingProgress progress)
     {
         PendingResume = progress;
+    }
+
+    public void RequestDetail(ReadingProgress progress)
+    {
+        PendingDetail = progress;
+    }
+
+    public ReadingProgress? TakePendingDetail()
+    {
+        var progress = PendingDetail;
+        PendingDetail = null;
+        return progress;
     }
 
     public ReadingProgress? TakePendingResume()
@@ -72,6 +86,20 @@ public sealed class BrowseViewModel : INotifyPropertyChanged
             _selectedLanguage = value;
             OnPropertyChanged();
 
+            ApplyFilter();
+        }
+    }
+
+    public string ExtensionQuery
+    {
+        get => _extensionQuery;
+        set
+        {
+            if (_extensionQuery == value)
+                return;
+
+            _extensionQuery = value;
+            OnPropertyChanged();
             ApplyFilter();
         }
     }
@@ -230,7 +258,13 @@ public sealed class BrowseViewModel : INotifyPropertyChanged
                         SelectedLanguage,
                         StringComparison.OrdinalIgnoreCase)))
             {
-                FilteredExtensions.Add(extension);
+                if (string.IsNullOrWhiteSpace(ExtensionQuery) ||
+                    extension.Name.Contains(ExtensionQuery, StringComparison.OrdinalIgnoreCase) ||
+                    extension.Sources.Any(source =>
+                        source.Name.Contains(ExtensionQuery, StringComparison.OrdinalIgnoreCase)))
+                {
+                    FilteredExtensions.Add(extension);
+                }
             }
         }
     }

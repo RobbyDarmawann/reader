@@ -44,7 +44,7 @@
         </Style>
 
         <Style Selector="Button.nav-button:pointerover">
-            <Setter Property="Background" Value="#2A2A2A" />
+            <Setter Property="Background" Value="{DynamicResource SystemControlHighlightListLowBrush}" />
         </Style>
 
         <!-- Small top bar button -->
@@ -63,7 +63,7 @@
 
         <Border
             Grid.Row="0"
-            BorderBrush="#303030"
+            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
             BorderThickness="0,0,0,1"
             Padding="20,0">
 
@@ -103,7 +103,7 @@
 
             <Border
                 Grid.Column="0"
-                BorderBrush="#303030"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
                 BorderThickness="0,0,1,0"
                 Padding="14">
 

@@ -19,6 +19,9 @@ public partial class BrowseView : UserControl
     private readonly SourceSearchViewModel _searchViewModel;
     private readonly BacaKomikCatalogSource _bacaCatalog;
     private readonly BacaKomikSource _bacaSource;
+    private IComicSource _activeSource;
+    private readonly Dictionary<string, ComicSourceDescriptor> _sourceDescriptors =
+        new(StringComparer.OrdinalIgnoreCase);
     private readonly ReadingProgressService _readingProgress;
 
     private Manga? _currentManga;
@@ -45,6 +48,7 @@ public partial class BrowseView : UserControl
         _searchViewModel = new SourceSearchViewModel();
         _bacaCatalog = new BacaKomikCatalogSource();
         _bacaSource = new BacaKomikSource();
+        _activeSource = _bacaSource;
         _readingProgress = new ReadingProgressService();
 
         BuildSections();
@@ -53,6 +57,8 @@ public partial class BrowseView : UserControl
         Loaded += BrowseView_Loaded;
 
         RefreshButton.Click += Refresh_Click;
+        ExtensionSearchBox.TextChanged += ExtensionSearchBox_TextChanged;
+        ExtensionLanguageComboBox.SelectionChanged += ExtensionLanguageComboBox_SelectionChanged;
         BackButton.Click += BackToExtensions_Click;
         SearchButton.Click += Search_Click;
         ApplyFilterButton.Click += ApplyFilter_Click;
@@ -72,6 +78,8 @@ public partial class BrowseView : UserControl
     {
         var pendingResume =
             (DataContext as BrowseViewModel)?.TakePendingResume();
+        var pendingDetail =
+            (DataContext as BrowseViewModel)?.TakePendingDetail();
 
         // Extension loading berjalan di background agar tidak menghambat resume dari Home.
         _ = LoadExtensionsAsync();
@@ -89,6 +97,14 @@ public partial class BrowseView : UserControl
                     $"Gagal membuka resume dari Home: {ex}");
             }
         }
+        else if (pendingDetail is not null)
+        {
+            await OpenMangaDetailAsync(new Manga(
+                "bacakomik",
+                pendingDetail.MangaUrl,
+                pendingDetail.MangaTitle,
+                pendingDetail.CoverUrl));
+        }
     }
 
 
@@ -100,6 +116,8 @@ public partial class BrowseView : UserControl
 
             BuildInstalledSources();
             BuildExtensions();
+            ExtensionLanguageComboBox.ItemsSource = _viewModel.Languages;
+            ExtensionLanguageComboBox.SelectedIndex = 0;
         }
         catch (Exception ex)
         {
@@ -108,10 +126,26 @@ public partial class BrowseView : UserControl
         }
     }
 
+    private void ExtensionSearchBox_TextChanged(object? sender, TextChangedEventArgs e)
+    {
+        _viewModel.ExtensionQuery = ExtensionSearchBox.Text?.Trim() ?? string.Empty;
+        BuildExtensions();
+    }
+
+    private void ExtensionLanguageComboBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (ExtensionLanguageComboBox.SelectedItem is string language)
+        {
+            _viewModel.SelectedLanguage = language;
+            BuildExtensions();
+        }
+    }
+
 
     private void BuildInstalledSources()
     {
         InstalledContainer.Children.Clear();
+        _sourceDescriptors.Clear();
 
         var hasBacaKomik = _searchViewModel.Sources
             .Any(x => x.Id.Equals(
@@ -125,6 +159,8 @@ public partial class BrowseView : UserControl
 
         if (hasBacaKomik)
         {
+            _sourceDescriptors["bacakomik"] = new ComicSourceDescriptor(
+                "bacakomik", "BacaKomik", "id", "https://bacakomik.my", "native", "1.0");
             InstalledContainer.Children.Add(
                 CreateSourceCard(
                     "bacakomik",
@@ -140,6 +176,14 @@ public partial class BrowseView : UserControl
                         "BacaKomik",
                         StringComparison.OrdinalIgnoreCase))
                     continue;
+
+                _sourceDescriptors[source.Id.ToString()] = new ComicSourceDescriptor(
+                    source.Id.ToString(),
+                    source.Name,
+                    source.Language,
+                    source.BaseUrl,
+                    extension.PackageName,
+                    extension.VersionName);
 
                 InstalledContainer.Children.Add(
                     CreateSourceCard(
@@ -312,6 +356,15 @@ public partial class BrowseView : UserControl
         string title,
         string subtitle)
     {
+        _activeSource = sourceId.Equals(
+                "bacakomik",
+                StringComparison.OrdinalIgnoreCase)
+            ? _bacaSource
+            : _sourceDescriptors.TryGetValue(sourceId, out var descriptor)
+                ? new NativeExtensionSource(descriptor)
+                : new UnsupportedExtensionSource(new ComicSourceDescriptor(
+                    sourceId, title, string.Empty, string.Empty, string.Empty, string.Empty));
+
         if (!sourceId.Equals(
                 "bacakomik",
                 StringComparison.OrdinalIgnoreCase))
@@ -323,10 +376,12 @@ public partial class BrowseView : UserControl
 
             SourceTitle.Text = title;
             SourceDescription.Text =
-                "Source terdeteksi dari extension, tetapi adapter native belum tersedia.";
+                _activeSource is NativeExtensionSource
+                    ? "Native web adapter aktif dari metadata extension."
+                    : "Source terdeteksi, tetapi metadata URL belum tersedia.";
 
-            SearchBox.IsEnabled = false;
-            SearchButton.IsEnabled = false;
+            SearchBox.IsEnabled = _activeSource is NativeExtensionSource;
+            SearchButton.IsEnabled = _activeSource is NativeExtensionSource;
             FilterBorder.IsVisible = false;
             MangaGrid.Items.Clear();
 
@@ -508,7 +563,7 @@ public partial class BrowseView : UserControl
                 $"Mencari {query}...";
 
             var results =
-                await _bacaSource.SearchAsync(query);
+                await _activeSource.SearchAsync(query);
 
             RenderMangaGrid(results);
 
@@ -575,7 +630,8 @@ public partial class BrowseView : UserControl
             {
                 Text = manga.Title,
                 TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-                MaxHeight = 48,
+                Height = 48,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
                 Margin = new Thickness(0, 8, 0, 6),
                 FontWeight = Avalonia.Media.FontWeight.Bold,
                 FontSize = 14
@@ -669,7 +725,7 @@ public partial class BrowseView : UserControl
         {
             // Ambil daftar halaman.
             var pages =
-                await _bacaSource.GetPagesAsync(
+                await _activeSource.GetPagesAsync(
                     chapter);
 
             _readerPageCount =
@@ -905,7 +961,7 @@ public partial class BrowseView : UserControl
         try
         {
             var details =
-                await _bacaSource.GetDetailsAsync(manga);
+                await _activeSource.GetDetailsAsync(manga);
 
             if (details is not null)
             {
@@ -934,7 +990,7 @@ public partial class BrowseView : UserControl
                 "Memuat chapter...";
 
             var chapters =
-                await _bacaSource.GetChaptersAsync(manga);
+                await _activeSource.GetChaptersAsync(manga);
 
             _readerChapters = chapters;
 
@@ -1118,7 +1174,7 @@ public partial class BrowseView : UserControl
         try
         {
             var pages =
-                await _bacaSource.GetPagesAsync(chapter);
+                await _activeSource.GetPagesAsync(chapter);
 
             _readerPageCount = pages.Count;
             _readerCurrentPage = pages.Count > 0 ? 1 : 0;

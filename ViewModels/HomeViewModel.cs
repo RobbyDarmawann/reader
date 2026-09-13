@@ -1,6 +1,9 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Avalonia.Media.Imaging;
+using ComicReader.Core.Models;
+using ComicReader.Infrastructure.Sources;
 using ComicReader.Infrastructure.Reading;
 using ComicReader.Infrastructure.Storage;
 
@@ -13,6 +16,7 @@ public sealed class HomeReadingItem : INotifyPropertyChanged
     public string ChapterName => Progress.ChapterName;
     public DateTimeOffset UpdatedAt => Progress.UpdatedAt;
     public string? CoverUrl { get; private set; }
+    public Bitmap? CoverImage { get; private set; }
 
     public HomeReadingItem(ReadingProgress progress)
     {
@@ -20,10 +24,17 @@ public sealed class HomeReadingItem : INotifyPropertyChanged
         CoverUrl = progress.CoverUrl;
     }
 
-    public void SetCover(string? coverUrl)
+    public async Task SetCoverAsync(string? coverUrl)
     {
         CoverUrl = coverUrl;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CoverUrl)));
+
+        if (!string.IsNullOrWhiteSpace(coverUrl) && File.Exists(coverUrl))
+        {
+            await using var stream = File.OpenRead(coverUrl);
+            CoverImage = new Bitmap(stream);
+        }
+
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CoverImage)));
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -33,6 +44,7 @@ public sealed class HomeViewModel : INotifyPropertyChanged
 {
     private readonly ReadingProgressService _readingProgressService;
     private readonly CoverCacheService _coverCacheService = new();
+    private readonly BacaKomikSource _legacySource = new();
 
     public ObservableCollection<HomeReadingItem> ContinueReading { get; } =
         new();
@@ -41,6 +53,7 @@ public sealed class HomeViewModel : INotifyPropertyChanged
         ContinueReading.Count > 0;
 
     public event Action<ReadingProgress>? ResumeRequested;
+    public event Action<ReadingProgress>? DetailRequested;
 
     public HomeViewModel()
     {
@@ -53,6 +66,11 @@ public sealed class HomeViewModel : INotifyPropertyChanged
     public void Resume(HomeReadingItem item)
     {
         ResumeRequested?.Invoke(item.Progress with { CoverUrl = item.CoverUrl });
+    }
+
+    public void OpenDetail(HomeReadingItem item)
+    {
+        DetailRequested?.Invoke(item.Progress with { CoverUrl = item.CoverUrl });
     }
 
     private async Task LoadLocalHistoryAsync()
@@ -69,11 +87,22 @@ public sealed class HomeViewModel : INotifyPropertyChanged
                 ContinueReading.Add(item);
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasContinueReading)));
 
-                if (!string.IsNullOrWhiteSpace(progress.CoverUrl))
+                var coverUrl = progress.CoverUrl;
+                if (string.IsNullOrWhiteSpace(coverUrl))
                 {
-                    var cached = await _coverCacheService.GetLocalPathAsync(progress.CoverUrl);
-                    item.SetCover(cached);
+                    try
+                    {
+                        var details = await _legacySource.GetDetailsAsync(
+                            new Manga("bacakomik", progress.MangaUrl, progress.MangaTitle));
+                        coverUrl = details?.CoverUrl;
+                    }
+                    catch
+                    {
+                    }
                 }
+
+                var cached = await _coverCacheService.GetLocalPathAsync(coverUrl);
+                await item.SetCoverAsync(cached);
             }
         }
         catch (Exception ex)
