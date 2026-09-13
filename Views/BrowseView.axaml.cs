@@ -169,7 +169,8 @@ public partial class BrowseView : UserControl
                 Avalonia.Layout.HorizontalAlignment.Stretch,
             Margin = new Thickness(0, 0, 0, 8),
             Padding = new Thickness(16),
-            Background = Avalonia.Media.Brushes.Transparent
+            Background = Avalonia.Media.Brushes.Transparent,
+            CornerRadius = new CornerRadius(8)
         };
 
         var panel = new Grid
@@ -228,8 +229,9 @@ public partial class BrowseView : UserControl
             var border = new Border
             {
                 Background = Avalonia.Media.Brushes.Transparent,
-                Padding = new Thickness(12),
-                Margin = new Thickness(0, 0, 0, 8)
+                Padding = new Thickness(16),
+                Margin = new Thickness(0, 0, 0, 10),
+                CornerRadius = new CornerRadius(8)
             };
 
             var grid = new Grid
@@ -244,7 +246,7 @@ public partial class BrowseView : UserControl
                 new TextBlock
                 {
                     Text = extension.Name,
-                    FontSize = 16,
+                    FontSize = 17,
                     FontWeight = Avalonia.Media.FontWeight.Bold
                 });
 
@@ -254,7 +256,8 @@ public partial class BrowseView : UserControl
                     Text =
                         $"{extension.VersionName} • {extension.Sources.Count} source",
                     FontSize = 13,
-                    Opacity = 0.6
+                    Opacity = 0.65,
+                    Margin = new Thickness(0, 5, 0, 0)
                 });
 
             grid.Children.Add(text);
@@ -266,7 +269,9 @@ public partial class BrowseView : UserControl
                         extension.PackageName)
                         ? "Installed"
                         : "Install",
-                Width = 100
+                MinWidth = 104,
+                Height = 36,
+                Margin = new Thickness(16, 0, 0, 0)
             };
 
             Grid.SetColumn(install, 1);
@@ -377,6 +382,7 @@ public partial class BrowseView : UserControl
         var button = new Button
         {
             Content = title,
+            Classes = { "section-button" },
             Padding = new Thickness(16, 8),
             Margin = new Thickness(0, 0, 5, 0)
         };
@@ -542,11 +548,12 @@ public partial class BrowseView : UserControl
     {
         var border = new Border
         {
-            Background = Avalonia.Media.Brushes.Transparent,
+            Classes = { "manga-card" },
             Margin = new Thickness(6),
             Padding = new Thickness(8),
             Width = 165,
-            Height = 300
+            Height = 318,
+            CornerRadius = new CornerRadius(10)
         };
 
         var stack = new StackPanel();
@@ -554,8 +561,9 @@ public partial class BrowseView : UserControl
         var image = new Image
         {
             Width = 145,
-            Height = 205,
-            Stretch = Avalonia.Media.Stretch.UniformToFill
+            Height = 210,
+            Stretch = Avalonia.Media.Stretch.UniformToFill,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
         };
 
         stack.Children.Add(image);
@@ -569,12 +577,14 @@ public partial class BrowseView : UserControl
                 TextWrapping = Avalonia.Media.TextWrapping.Wrap,
                 MaxHeight = 48,
                 Margin = new Thickness(0, 8, 0, 6),
-                FontWeight = Avalonia.Media.FontWeight.Bold
+                FontWeight = Avalonia.Media.FontWeight.Bold,
+                FontSize = 14
             });
 
         var open = new Button
         {
             Content = "Open",
+            Height = 34,
             HorizontalAlignment =
                 Avalonia.Layout.HorizontalAlignment.Stretch
         };

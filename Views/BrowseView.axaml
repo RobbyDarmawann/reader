@@ -5,6 +5,37 @@
 
     <Grid>
 
+        <Grid.Styles>
+            <Style Selector="Border.browse-surface">
+                <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+            </Style>
+
+            <Style Selector="Button.section-button">
+                <Setter Property="Padding" Value="16,9" />
+                <Setter Property="Margin" Value="0,0,8,0" />
+                <Setter Property="MinWidth" Value="96" />
+            </Style>
+
+            <Style Selector="Button.section-button:pointerover">
+                <Setter Property="Background" Value="#D97745" />
+                <Setter Property="Foreground" Value="White" />
+            </Style>
+
+            <Style Selector="Border.manga-card">
+                <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+            </Style>
+
+            <Style Selector="TextBlock.eyebrow">
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="FontWeight" Value="Bold" />
+                <Setter Property="Opacity" Value="0.6" />
+            </Style>
+        </Grid.Styles>
+
         <!-- ================================================= -->
         <!-- NORMAL BROWSE CONTENT                             -->
         <!-- ================================================= -->
@@ -14,7 +45,7 @@
             HorizontalScrollBarVisibility="Disabled"
             VerticalScrollBarVisibility="Auto">
 
-            <StackPanel Margin="32">
+            <StackPanel Margin="34,30,34,48">
 
                 <!-- EXTENSION PAGE -->
 
@@ -22,19 +53,22 @@
 
                     <TextBlock
                         Text="Browse"
-                        FontSize="32"
-                        FontWeight="Bold"/>
+                        FontSize="34"
+                        FontWeight="Bold" />
 
                     <TextBlock
                         Text="Pilih extension atau source untuk melihat katalog."
                         FontSize="16"
                         Opacity="0.65"
-                        Margin="0,8,0,25"/>
+                        Margin="0,8,0,28"
+                        MaxWidth="680"
+                        TextWrapping="Wrap" />
 
                     <Border
-                        Background="#1E1E1E"
+                        Classes="browse-surface"
                         CornerRadius="10"
-                        Padding="20">
+                        Padding="22"
+                        MaxWidth="980">
 
                         <StackPanel>
 
@@ -73,9 +107,9 @@
                     </Border>
 
                     <Border
-                        Background="#1E1E1E"
+                        Classes="browse-surface"
                         CornerRadius="10"
-                        Padding="20"
+                        Padding="22"
                         Margin="0,20,0,0">
 
                         <StackPanel>
@@ -140,22 +174,26 @@
                     <!-- SEARCH -->
 
                     <Border
-                        Background="#1E1E1E"
+                        Classes="browse-surface"
                         CornerRadius="10"
-                        Padding="18"
+                        Padding="20"
                         Margin="0,20,0,0">
 
                         <Grid ColumnDefinitions="*,Auto">
 
-                            <TextBox
+                                <TextBox
                                 x:Name="SearchBox"
-                                PlaceholderText="Cari manga..."/>
+                                    Height="44"
+                                    VerticalContentAlignment="Center"
+                                    FontSize="15"
+                                    PlaceholderText="Cari judul manga, manhwa, atau manhua..."/>
 
-                            <Button
+                                <Button
                                 x:Name="SearchButton"
                                 Grid.Column="1"
-                                Content="Search"
-                                Width="100"
+                                    Content="Cari"
+                                    MinWidth="96"
+                                    Height="44"
                                 Margin="10,0,0,0"/>
 
                         </Grid>
@@ -166,21 +204,21 @@
                     <!-- SECTION -->
 
                     <Border
-                        Background="#1E1E1E"
+                        Classes="browse-surface"
                         CornerRadius="10"
-                        Padding="18"
+                        Padding="20"
                         Margin="0,15,0,0">
 
                         <StackPanel>
 
                             <TextBlock
-                                Text="Section"
-                                FontSize="18"
+                                Text="Explore catalog"
+                                FontSize="20"
                                 FontWeight="Bold"/>
 
                             <StackPanel
                                 x:Name="SectionContainer"
-                                Margin="0,10,0,0"/>
+                                Margin="0,14,0,0"/>
 
                         </StackPanel>
 
@@ -191,55 +229,67 @@
 
                     <Border
                         x:Name="FilterBorder"
-                        Background="#1E1E1E"
+                        Classes="browse-surface"
                         CornerRadius="10"
-                        Padding="18"
+                        Padding="20"
                         Margin="0,15,0,0">
 
                         <StackPanel>
 
                             <TextBlock
-                                Text="Filters"
-                                FontSize="18"
+                                Text="Refine results"
+                                FontSize="20"
                                 FontWeight="Bold"/>
+
+                            <TextBlock
+                                Text="Gabungkan genre, status, format, dan urutan untuk menemukan bacaan yang pas."
+                                Margin="0,5,0,0"
+                                Opacity="0.6"
+                                TextWrapping="Wrap" />
 
                             <Grid
                                 ColumnDefinitions="*,*,*"
                                 RowDefinitions="Auto,Auto"
                                 ColumnSpacing="12"
                                 RowSpacing="10"
-                                Margin="0,12,0,0">
+                                Margin="0,16,0,0">
 
                                 <ComboBox
                                     x:Name="GenreComboBox"
+                                    Height="40"
                                     PlaceholderText="Genre"/>
 
                                 <ComboBox
                                     x:Name="TypeComboBox"
                                     Grid.Column="1"
+                                    Height="40"
                                     PlaceholderText="Type"/>
 
                                 <ComboBox
                                     x:Name="StatusComboBox"
                                     Grid.Column="2"
+                                    Height="40"
                                     PlaceholderText="Status"/>
 
                                 <ComboBox
                                     x:Name="FormatComboBox"
                                     Grid.Row="1"
+                                    Height="40"
                                     PlaceholderText="Format"/>
 
                                 <ComboBox
                                     x:Name="SortComboBox"
                                     Grid.Row="1"
                                     Grid.Column="1"
+                                    Height="40"
                                     PlaceholderText="Sort"/>
 
                                 <Button
                                     x:Name="ApplyFilterButton"
                                     Grid.Row="1"
                                     Grid.Column="2"
-                                    Content="Apply"/>
+                                    Content="Terapkan filter"
+                                    Height="40"/>
 
                             </Grid>
 
@@ -251,7 +301,9 @@
                     <TextBlock
                         x:Name="CatalogStatus"
                         Text="Siap."
-                        Margin="0,18,0,10"/>
+                        Margin="2,22,0,12"
+                        FontSize="14"
+                        Opacity="0.7"/>
 
                     <ItemsControl
                         x:Name="MangaGrid"
@@ -263,7 +315,7 @@
                                     Orientation="Horizontal"
                                     HorizontalAlignment="Left"
                                     ItemWidth="180"
-                                    ItemHeight="285"/>
+                                    ItemHeight="330"/>
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
 
